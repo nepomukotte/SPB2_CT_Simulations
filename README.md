@@ -8,3 +8,14 @@ All photons arrive at the same time
 All photons have a wavelength of 300nm
 The position of the event in the camera is picked at random and is in an area slightly larger than the camera itself.
 The simulated events are stored in a .root file that is compatible with CARE.
+
+CAREConfig:
+CARE configuration files for SPB2
+
+SimAnalysisMacros:
+macros to run CARE and extract some useful information out of the simulated
+results
+
+
+
+
