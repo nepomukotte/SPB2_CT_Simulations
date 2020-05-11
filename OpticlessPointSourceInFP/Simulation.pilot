@@ -1,0 +1,25 @@
+FILEOUT <root filename> <TreeName> <telBaseTreeName> <photonDirCosBranchFlag>
+
+* FILEOUT photonLocation.root allT T 0
+
+number of showers/photons, defaults -1
+  NSHOWER <numShowers, <0, no limit>
+          <numPhotons, <0, no limit>
+* NSHOWER 1 -1
+ NSHOWER 1 100
+You can see the paths of all 20 photons in the ogl image when you
+run the code (all photons from the photon.cph test input file).
+
+random number seed for TRandom3: default seed = 0, set by machine clock.
+seed must be an unsigned integer
+* SEED 12345
+
+vector capacities: may be useful for memory management, set to 100 if
+vector is left out. Seems to work ok up to 1000000 for my machine (lots of
+memory).  Should just set to 100 and forget about it (hopefully)
+* VECCAPACITY 100
+
+core/telescope location in grd.and tel.system branches added for debuging.
+default 0 for compatibility with earlier opticsSimulation.pilot versions.
+* DEBUGBRANCHES 0
+

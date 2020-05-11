@@ -1,0 +1,21 @@
+test1
+Please  do  not write behind the end of line tag so that it is  possible
+to   send  a   Changelog   file  to  a  line  printer  directly.  Thanks.
+
+For your entries please follow EXACTLY this style:
+
+_yyyy/mm/dd_[Your Name]
+_
+___*_filename:
+_____-_description
+_
+___*_filename2, filename3:
+_____-_description
+_
+_
+_
+
+                                                     -*-*- END OF LINE -*-*-
+  2020/05/11 Nepomuk Otte
+  Initial Commit
+
