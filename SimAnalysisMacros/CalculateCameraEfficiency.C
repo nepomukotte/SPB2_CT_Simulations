@@ -1,4 +1,4 @@
-void CalculateCameraEfficiency(string fInputFileName = "test.root")
+void CalculateCameraEfficiency(string fInputFileName = "../data/TriggerEfficiency.root")
 {
        //Open the CARE file
        TFile *fO = new TFile( fInputFileName.c_str(), "READ" );
@@ -51,9 +51,11 @@ void CalculateCameraEfficiency(string fInputFileName = "test.root")
       hEfficiency->GetXaxis()->SetTitle("Total Shower Photoelectron Signal");
       hEfficiency->GetYaxis()->SetTitle("Trigger Efficiency");
       hEfficiency->SetStats(0);
+      hEfficiency->SetLineWidth(2);
       hEfficiency->Sumw2();
       
       TH2F *hTriggerInEfficiencyAcrossCamera = new TH2F("hTriggerEfficiencyAcrossCamera","Trigger Inefficiency across the camera",214,-107,107,112,-56,56);
+      //TH2F *hTriggerInEfficiencyAcrossCamera = new TH2F("hTriggerEfficiencyAcrossCamera","Trigger Inefficiency across the camera",234,-122,112,130,-60,70);
       hTriggerInEfficiencyAcrossCamera->SetStats(0);
 
 
@@ -73,4 +75,8 @@ void CalculateCameraEfficiency(string fInputFileName = "test.root")
        gPad->SetLogx();
        cDisplay->cd(2);
        hTriggerInEfficiencyAcrossCamera->Draw("colz");
+       TBox *b = new TBox(-96.8-3.1,-46.8-3.1,96.8+3.1,46.8+3.1);
+       b->SetFillStyle(0);
+       b->SetLineColor(kRed);
+       b->Draw(); 
 }

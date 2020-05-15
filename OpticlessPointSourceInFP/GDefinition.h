@@ -11,8 +11,6 @@ VERSION4.0
 
 const string VERSN("4.0"); /*< current GrOptics version number   */
 
-// log file
-extern ostream *oLog; //< pointer to log file streamer
 
 // may want to put this in a namespace later
 

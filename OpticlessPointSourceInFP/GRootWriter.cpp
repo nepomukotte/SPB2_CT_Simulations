@@ -54,8 +54,8 @@ GRootWriter::GRootWriter( TFile *tfile,const unsigned int &iTelID,
 
   bool debug = false;
   if (debug) {
-    *oLog << "  -- GRootWriter::GRootWriter " << endl;
-    *oLog << "     version: " << version << endl;
+    cout << "  -- GRootWriter::GRootWriter " << endl;
+    cout << "     version: " << version << endl;
   }
 
   fPE_photonX = 0;
@@ -116,7 +116,7 @@ GRootWriter::GRootWriter( TFile *tfile,const unsigned int &iTelID,
   sprintf( htitle, "photon data for telescope %d", fTelID );
 
   if (debug) {  
-    *oLog << "      making  TTree: " << hname << " " << htitle << endl;
+    cout << "      making  TTree: " << hname << " " << htitle << endl;
   }
   fFile->cd();
   fTree = new TTree( hname, htitle );
@@ -154,7 +154,7 @@ GRootWriter::GRootWriter( TFile *tfile,const unsigned int &iTelID,
   }
 
   if (bDebugBranchesFlag) {
-    *oLog << "making debug branches" << endl;
+    cout << "making debug branches" << endl;
     fTree->Branch( "TelID", &fTelID, "TelID/i" );
     fTree->Branch( "XcoreTC", &fXcoreTC, "XcoreTC/F" );
     fTree->Branch( "YcoreTC", &fYcoreTC, "YcoreTC/F" );
@@ -176,7 +176,7 @@ GRootWriter::~GRootWriter() {
   // worry about TTree later (fTree)
   bool debug = false;
   if (debug) {
-    *oLog << "  -- GRootWriter::~GRootWriter" << endl;
+    cout << "  -- GRootWriter::~GRootWriter" << endl;
   }
   SafeDelete(fPE_photonX);
   SafeDelete(fPE_photonY);
@@ -210,12 +210,12 @@ int GRootWriter::addEvent(const unsigned int &eventNumber, const unsigned int &p
   bool debug1 = false;
   bool debug = false;
   if (debug) {
-    *oLog << "  -- GRootWriter::addEvent; telnumber  " << fTelID << endl;
+    cout << "  -- GRootWriter::addEvent; telnumber  " << fTelID << endl;
   }
 
   if( !fTree ) {
     if (debug) {
-      *oLog << "         NO TREE, fTree is 0: returning " << endl;
+      cout << "         NO TREE, fTree is 0: returning " << endl;
     }
     return 0;
   }
@@ -261,17 +261,17 @@ int GRootWriter::addEvent(const unsigned int &eventNumber, const unsigned int &p
 
   int r = fTree->Fill();
   if (debug ) {
-    *oLog << "       r after tree fill " << r << endl;
-    *oLog << "       photon vector sizes " << endl;
-    *oLog << "       fPE_photonX->size():  " << fPE_photonX->size() << endl;
-    *oLog << "       fPE_photonY->size():  " << fPE_photonY->size() << endl;
-    *oLog << "       fPE_time->size():  " << fPE_time->size() << endl;
-    *oLog << "       fPE_wl->size():  " << fPE_wl->size() << endl;
+    cout << "       r after tree fill " << r << endl;
+    cout << "       photon vector sizes " << endl;
+    cout << "       fPE_photonX->size():  " << fPE_photonX->size() << endl;
+    cout << "       fPE_photonY->size():  " << fPE_photonY->size() << endl;
+    cout << "       fPE_time->size():  " << fPE_time->size() << endl;
+    cout << "       fPE_wl->size():  " << fPE_wl->size() << endl;
   }
 
   if (debug1) {
     
-    *oLog << "telid photonX.size " << fTelID << " " << fPE_photonX->size() << endl;
+    cout << "telid photonX.size " << fTelID << " " << fPE_photonX->size() << endl;
   }
 
   fPE_photonX->clear();

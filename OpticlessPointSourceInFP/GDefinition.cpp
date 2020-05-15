@@ -62,10 +62,10 @@ enum RdType getRdTypeEnum(const string &rdTypeStr) {
     rdType = CORSIKA;
   }
   else {
-    *oLog << " in getRdTypeEnum " << endl;
-    *oLog << "     string for RdType enum not defined: ";
-    *oLog << teststr << endl;
-    *oLog << "         STOPPING CODE " << endl;
+    cout << " in getRdTypeEnum " << endl;
+    cout << "     string for RdType enum not defined: ";
+    cout << teststr << endl;
+    cout << "         STOPPING CODE " << endl;
     exit(0);
   }
 
@@ -111,10 +111,10 @@ enum OfType getOfTypeEnum(const string &ofTypeStr) {
     tenum = ROOTPIX;
   }
   else {
-    *oLog << " in getOfTypeEnum " << endl;
-    *oLog << "     string for OfType enum not defined: ";
-    *oLog << teststr << endl;
-    *oLog << "         STOPPING CODE " << endl;
+    cout << " in getOfTypeEnum " << endl;
+    cout << "     string for OfType enum not defined: ";
+    cout << teststr << endl;
+    cout << "         STOPPING CODE " << endl;
     exit(0);
   }
 
@@ -160,10 +160,10 @@ enum TelType getTelTypeEnum(const string &telTypeStr) {
     tenum = SEGSC;
   }
   else {
-    *oLog << " in getTelTypeEnum " << endl;
-    *oLog << "     string for TelType enum not defined: ";
-    *oLog << teststr << endl;
-    *oLog << "         STOPPING CODE " << endl;
+    cout << " in getTelTypeEnum " << endl;
+    cout << "     string for TelType enum not defined: ";
+    cout << teststr << endl;
+    cout << "         STOPPING CODE " << endl;
     exit(0);
   }
 
@@ -208,10 +208,10 @@ enum FacetShape getFacetShapeEnum(const string &facetShapeStr) {
     tenum = SQR;
   }
   else {
-    *oLog << " in getFacetShapeEnum " << endl;
-    *oLog << "     string for FacetShape enum not defined: ";
-    *oLog << teststr << endl;
-    *oLog << "         STOPPING CODE " << endl;
+    cout << " in getFacetShapeEnum " << endl;
+    cout << "     string for FacetShape enum not defined: ";
+    cout << teststr << endl;
+    cout << "         STOPPING CODE " << endl;
     exit(0);
   }
 
@@ -259,10 +259,10 @@ enum GeoType getGeoTypeEnum(const string &geoTypeStr) {
     tenum = NOSTRUCT;
   }
   else {
-    *oLog << " in getGeoTypeEnum " << endl;
-    *oLog << "     string for GeoType enum not defined: ";
-    *oLog << teststr << endl;
-    *oLog << "         STOPPING CODE " << endl;
+    cout << " in getGeoTypeEnum " << endl;
+    cout << "     string for GeoType enum not defined: ";
+    cout << teststr << endl;
+    cout << "         STOPPING CODE " << endl;
     exit(0);
   }
 

@@ -54,14 +54,11 @@ struct Pilot {
   bool outFileDCos;     //!< add DCos branches to outFileTelTree 
 };
 
-// ostream for all logging info. set to cerr in main
-ostream *oLog; //!< stream for log file, same in all files.
-
 int commandLineHelp() {
 
-  *oLog << "SimulatePointsourceInFP:  commandline options with default values" << endl;
-  *oLog << "    -of <outputFileName> " << endl;
-  *oLog << "    -p  <pilotFileName = ./Config/opticsSimulation.pilot>  ";
+  cout << "SimulatePointsourceInFP:  commandline options with default values" << endl;
+  cout << "    -of <outputFileName> " << endl;
+  cout << "    -p  <pilotFileName = ./Config/opticsSimulation.pilot>  ";
   return 1;
 };
 /********************** end of commandLineHelp **************************************/
@@ -76,7 +73,7 @@ int readCommandLine(int argc, char *argv[], Cline *cline) {
   }
 
   for (int i = 1;i<argc;i++) {
-    *oLog << "COMMANDLINE " << clArg.at(i) << endl;
+    cout << "COMMANDLINE " << clArg.at(i) << endl;
     if (clArg.at(i)=="-p" ) {
       cline->pilotfile = clArg.at(i+1);
       i++;
@@ -244,7 +241,7 @@ int main( int argc, char **argv )
 
   //set command line defaults
   cline.pilotfile = "Simulation.pilot"; // default value
-  cline.outFileName   = "SPB2PointSourceSims.root";
+  cline.outFileName   = "";
   
   // command line printed to cerr in this function
   readCommandLine(argc,argv,&cline);
@@ -254,7 +251,6 @@ int main( int argc, char **argv )
   pilot.pilotfile = cline.pilotfile;
   readPilot(&pilot);
   updatePilot(cline,&pilot);
-
   // set seed so can print out seed if from machine clock
   TR3.SetSeed(pilot.seed); 
 
@@ -263,8 +259,8 @@ int main( int argc, char **argv )
  TFile *fO;
  fO = new TFile(outFileName.c_str(),"RECREATE");
  if (fO->IsZombie() ) {
-      *oLog << "error opening root output file: " << outFileName << endl;
-      *oLog << "...exiting" << endl;
+      cout << "error opening root output file: " << outFileName << endl;
+      cout << "...exiting" << endl;
       exit(-1);
  }
 
@@ -300,14 +296,13 @@ for(float logpe=1;logpe<=3;logpe+=0.2)
 
    for(int n=0;n<nEventsPerPELevel;n++)
     {
-      //float xCamPos = TR3.Uniform(-0.5*xCamPosMax-fBifocalOffset,xCamPosMax);
       float xCamPos = TR3.Uniform(-xCamPosMax,xCamPosMax);
-      float yCamPos = TR3.Uniform(-yCamPosMax,yCamPosMax);
+      float yCamPos = TR3.Uniform(-yCamPosMax,yCamPosMax) - 0.5*fBifocalOffset;
       for(int p=0;p<2;p++) //two points
         {
           int iNumPhotons = TR3.Poisson(fMeanPhotoElectrons/0.127214); //division is by the PDE at 300nm, which is assumed all photons have here. This converts back to photons. Converting back to PEs is done in CARE. So make sure the PDE is the same.
           if(p==1)//yeah this is how to simulate the bifocaloptics
-            xCamPos+= fBifocalOffset;
+            yCamPos+= fBifocalOffset;
           for(int i=0;i<iNumPhotons;i++)
           { 
             vPhotonCameraLoc.SetX(xCamPos);   //units are mm
@@ -329,8 +324,9 @@ for(float logpe=1;logpe<=3;logpe+=0.2)
 
       // primary details
       ROOT::Math::XYZVector vSCore; //!< core loc.vec. ground coors.(meters)
-      vSCore.SetX(xCamPos-fBifocalOffset);
-      vSCore.SetY(yCamPos);
+      //vSCore.SetX(xCamPos-fBifocalOffset);
+      vSCore.SetX(xCamPos);
+      vSCore.SetY(yCamPos-0.5*fBifocalOffset); //set event location right in middle of the two spots
       ROOT::Math::XYZVector vSDcosGd; //!< core dir.cosines; grd coors.
       double fZnPrim = 0;                   //!< primary zenith angle
       double fAzPrim = 0;                   //!< primary azimuthal angle

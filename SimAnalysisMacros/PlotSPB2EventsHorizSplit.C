@@ -58,44 +58,44 @@ int FindPixel(int x, int y)
 {
  //cout<<x<<"  "<<y<<endl;
  //column    
- int MUSIC_column = x/2;
+ int MUSIC_column = x/4;
 
  //cout<<"MUSIC column "<<MUSIC_column<<endl;
  //row
- int MUSIC_row = y/4;
+ int MUSIC_row = y/2;
  //cout<<"MUSIC row "<<MUSIC_row<<endl;
 
  //MUSIC ID
- int MUSIC_ID = MUSIC_column+MUSIC_row*16;
+ int MUSIC_ID = MUSIC_column*8+MUSIC_row;
  //cout<<"MUSIC_ID "<<MUSIC_ID<<endl;
 
  //Channel in MUSIC
- int MUSIC_Channel = y%4+4*(x%2); 
+ int MUSIC_Channel = x%4+4*(y%2); 
  //cout<<"MUSIC_Channel "<<MUSIC_Channel<<endl;
 
- return MUSIC_row*8*16+MUSIC_column*8+MUSIC_Channel;
+ return MUSIC_column*4*16+MUSIC_row*8+MUSIC_Channel;
 }
 
 void ShowInfoAtCursor(int x, int y)
 {
  //cout<<x<<"  "<<y<<endl;
  //column    
- int MUSIC_column = x/2;
+ int MUSIC_column = x/4;
 
  //cout<<"MUSIC column "<<MUSIC_column<<endl;
  //row
- int MUSIC_row = y/4;
+ int MUSIC_row = y/2;
  //cout<<"MUSIC row "<<MUSIC_row<<endl;
 
  //MUSIC ID
- int MUSIC_ID = MUSIC_column+MUSIC_row*16;
- //cout<<"MUSIC_ID "<<MUSIC_ID<<endl;
+ int MUSIC_ID = MUSIC_column*8+MUSIC_row;
+// cout<<"MUSIC_ID "<<MUSIC_ID<<endl;
 
  //Channel in MUSIC
- int MUSIC_Channel = y%4+4*(x%2); 
+ int MUSIC_Channel = x%4+4*(y%2); 
  //cout<<"MUSIC_Channel "<<MUSIC_Channel<<endl;
 
- int PixID = MUSIC_row*8*16+MUSIC_column*8+MUSIC_Channel;
+ int PixID = MUSIC_column*4*16+MUSIC_row*8+MUSIC_Channel;
 
  //cout<<"MUSIC_ID: "<<MUSIC_ID<<" MUSIC_Channel: "<<MUSIC_Channel<<" Pixel ID: "<<PixID<<endl;
  TString statusline;
@@ -117,13 +117,13 @@ void FindBin(int iPix,int *nx, int *ny)
  int MUSIC_Channel = iPix%8; 
 
  //row
- int MUSIC_row = MUSIC_ID/16;
+ int MUSIC_column = MUSIC_ID/8;
  
  //column    
- int MUSIC_column = MUSIC_ID%16;
+ int MUSIC_row = MUSIC_ID%8;
 
- *ny = 4*MUSIC_row+MUSIC_Channel%4+1; 
- *nx = 2*MUSIC_column+MUSIC_Channel/4+1; 
+ *ny = 2*MUSIC_row+MUSIC_Channel/4+1; 
+ *nx = 4*MUSIC_column+MUSIC_Channel%4+1; 
  //cout<<"Pixel "<<iPix<<" x: "<<*nx<<" y: "<<*ny<<endl;
 
 }
@@ -161,7 +161,7 @@ void PixelClicked() {
 
 void DrawMUSICBoundaries()
 {
-  TBox *b = new TBox(-.5,-0.5,1.5,3.5);
+  TBox *b = new TBox(-.5,-0.5,3.5,1.5);
   b->SetFillStyle(0);
   b->SetLineColor(kRed);
   b->Draw(); 
@@ -169,16 +169,16 @@ void DrawMUSICBoundaries()
   for(int i=0;i<iNumPixels/8;i++)
    {
      TBox *bn = (TBox*)b->Clone();
-     bn->SetX1((i%16)*2-0.5);
-     bn->SetX2((i%16)*2+1.5);
-     bn->SetY1((i/16)*4-0.5);
-     bn->SetY2((i/16)*4+3.5);
+     bn->SetX1((i/8)*4-0.5);
+     bn->SetX2((i/8)*4+3.5);
+     bn->SetY1((i%8)*2-0.5);
+     bn->SetY2((i%8)*2+1.5);
      bn->Draw();
     
    } 
 }
 
-void PlotSPB2Events(string fInputFileName = "/home/nepi/Share/POEMMA/SPB2/SPB2_CT_Simulations/data/test.root")
+void PlotSPB2EventsHorizSplit(string fInputFileName = "/home/nepi/Share/POEMMA/SPB2/SPB2_CT_Simulations/data/test.root")
 {
        //Open the CARE file
        TFile *fO = new TFile( fInputFileName.c_str(), "READ" );
@@ -268,26 +268,25 @@ void PlotSPB2Events(string fInputFileName = "/home/nepi/Share/POEMMA/SPB2/SPB2_C
       hDisplay->Draw("colz");
       DrawMUSICBoundaries(); 
        //looping over events doing something
-      TRandom3 rand;
+       TRandom3 rand;
+       //for(int n=0;n<tSimulatedEvents->GetEntries();n++)
        while(1)
          {
            int n = rand.Integer(tSimulatedEvents->GetEntries());
            tSimulatedEvents->GetEntry( n );
-           //if(arrayTriggerBit)
+           if(arrayTriggerBit)
              {
                 hDisplay->Clear();
-                cout<<"Event "<<n<<" is triggered"<<endl; 
+                //cout<<"Event "<<n<<" is triggered"<<endl; 
                 T0->GetEntry(n);
                 for(int g=0;g<iNumPixels;g++)       
                    {                                             
                 
-                    //cout<<"Pixel "<<g<<endl;
-                    //cout<<"PEs: "<<iPEInPixel->at(g)<<endl;
-                    //cout<<"QDC: "<<iQDCInPixel->at(g)<<endl;
+                    //cout<<"Pixel "<<g<<" PEs: "<<iPEInPixel->at(g)<<" QDC: "<<iQDCInPixel->at(g)<<endl;
                     int nx, ny;
                     FindBin(g,&nx,&ny);
+                    //cout<<nx<<"  "<<ny<<endl;
                     hDisplay->SetBinContent(nx,ny,iPEInPixel->at(g));
-                    //cout<<endl<<endl;
                    }
                cDisplay->cd(1)->Modified();
                cDisplay->cd(1)->Update();

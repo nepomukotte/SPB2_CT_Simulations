@@ -25,7 +25,7 @@ using namespace std;
 
 #include "GPilot.h"
 
-#define DEBUG(x) *oLog << #x << " = " << x << endl
+#define DEBUG(x) cout << #x << " = " << x << endl
 
 //******************************************
 GPilot::GPilot() {
@@ -49,8 +49,8 @@ bool GPilot::addPilotFile(const string &pilotfile) {
 
   int debug = 0;
   if (debug >0) {
-    *oLog << "         -- GPilot::addPilotFile " << pilotfile << endl;
-    //*oLog << "       adding pilotfile: " << pilotfile << endl;
+    cout << "         -- GPilot::addPilotFile " << pilotfile << endl;
+    //cout << "       adding pilotfile: " << pilotfile << endl;
   }
 
   ifstream inFile(pilotfile.c_str(),ios::in);
