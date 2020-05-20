@@ -296,13 +296,13 @@ for(float logpe=1;logpe<=3;logpe+=0.2)
 
    for(int n=0;n<nEventsPerPELevel;n++)
     {
-      float xCamPos = TR3.Uniform(-xCamPosMax,xCamPosMax);
-      float yCamPos = TR3.Uniform(-yCamPosMax,yCamPosMax) - 0.5*fBifocalOffset;
+      float xCamPos = TR3.Uniform(-xCamPosMax,xCamPosMax)  - 0.5*fBifocalOffset;
+      float yCamPos = TR3.Uniform(-yCamPosMax,yCamPosMax);
       for(int p=0;p<2;p++) //two points
         {
           int iNumPhotons = TR3.Poisson(fMeanPhotoElectrons/0.127214); //division is by the PDE at 300nm, which is assumed all photons have here. This converts back to photons. Converting back to PEs is done in CARE. So make sure the PDE is the same.
           if(p==1)//yeah this is how to simulate the bifocaloptics
-            yCamPos+= fBifocalOffset;
+            xCamPos+= fBifocalOffset;
           for(int i=0;i<iNumPhotons;i++)
           { 
             vPhotonCameraLoc.SetX(xCamPos);   //units are mm
@@ -325,8 +325,8 @@ for(float logpe=1;logpe<=3;logpe+=0.2)
       // primary details
       ROOT::Math::XYZVector vSCore; //!< core loc.vec. ground coors.(meters)
       //vSCore.SetX(xCamPos-fBifocalOffset);
-      vSCore.SetX(xCamPos);
-      vSCore.SetY(yCamPos-0.5*fBifocalOffset); //set event location right in middle of the two spots
+      vSCore.SetX(xCamPos-0.5*fBifocalOffset);
+      vSCore.SetY(yCamPos); //set event location right in middle of the two spots
       ROOT::Math::XYZVector vSDcosGd; //!< core dir.cosines; grd coors.
       double fZnPrim = 0;                   //!< primary zenith angle
       double fAzPrim = 0;                   //!< primary azimuthal angle

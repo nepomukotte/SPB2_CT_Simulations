@@ -54,7 +54,7 @@ ALLFLAGS = $(CXXFLAGS) $(CPPFLAGS) -Wall
 	@echo "Done"
 
 SimulatePointSourceInFP: SimulatePointSourceInFP.o GPilot.o GRootWriter.o GDefinition.o
-	        $(LD)  $(CLLFLAGS) $(LIBS)  $(LDFLAGS) $^ $(OutPutOpt) $@ -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS
+	        $(LD)  $(CLLFLAGS) $^ $(LIBS)  $(LDFLAGS) $(OutPutOpt) $@ -D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS
 	        @echo "$@ done"
 
 clean:	
