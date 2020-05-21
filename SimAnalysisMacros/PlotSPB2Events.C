@@ -273,7 +273,7 @@ void PlotSPB2Events(string fInputFileName = "/home/nepi/Share/POEMMA/SPB2/SPB2_C
          {
            int n = rand.Integer(tSimulatedEvents->GetEntries());
            tSimulatedEvents->GetEntry( n );
-           //if(arrayTriggerBit)
+           if(arrayTriggerBit)
              {
                 hDisplay->Clear();
                 cout<<"Event "<<n<<" is triggered"<<endl; 
