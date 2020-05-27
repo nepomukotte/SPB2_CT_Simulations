@@ -1,6 +1,6 @@
 FILEOUT <root filename> <TreeName> <telBaseTreeName> <photonDirCosBranchFlag>
 
-* FILEOUT photonLocation.root allT T 0
+* FILEOUT SPB2PointSourceSims.root allT T 0
 
 number of showers/photons, defaults -1
   NSHOWER <numShowers, <0, no limit>

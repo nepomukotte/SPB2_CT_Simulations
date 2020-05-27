@@ -178,8 +178,7 @@ void DrawMUSICBoundaries()
    } 
 }
 
-void PlotSPB2EventsHorizSplit(string fInputFileName = "/home/nepi/Share/POEMMA/SPB2/SPB2_CT_Simulations/data/test.root")
-{
+void PlotSPB2EventsHorizSplit(string fInputFileName = "/home/oscar/Documents/Research/NSB_163MHz_PileUp_30ns_Signal_Gauss_Signal/NSB_163MHz_PileUp_30ns_Signal_Gauss_XTalk_Out.root"){
        //Open the CARE file
        TFile *fO = new TFile( fInputFileName.c_str(), "READ" );
        if( fO->IsZombie() )

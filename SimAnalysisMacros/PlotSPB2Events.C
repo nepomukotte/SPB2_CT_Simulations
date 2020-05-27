@@ -1,3 +1,8 @@
+#include <TTree.h>
+#include <TH1.h>
+#include <TGraph.h>
+#include <TH2.h>
+#include <TTimer.h>
 //You need to make sure that this is the actual number of pixels in the camera
 const int iNumPixels = 512; 
 vector< vector<Int_t> *>   iFADCTraceInPixel;
@@ -33,7 +38,7 @@ void ShowPixeltrace(int iPix)
 {
    if(hPixelTrace==0)
      {
-      hPixelTrace = new TH1F("hPixelTrace","Pixel Trace",25,-0.5,24.5);
+      hPixelTrace = new TH1F("hPixelTrace","Pixel Trace",10,-0.5,6.5);
       hPixelTrace->SetStats(0);
       hPixelTrace->GetXaxis()->SetTitle("ADC sample");
       hPixelTrace->GetYaxis()->SetTitle("ADC counts");
@@ -43,7 +48,8 @@ void ShowPixeltrace(int iPix)
    TString title;
    title.Form("Trace of Pixel %i",iPix);
    hPixelTrace->SetTitle(title);
-   for(int s=0;s<iFADCTraceInPixel[iPix]->size();s++)       
+  
+   for(int s=0;s < iFADCTraceInPixel[iPix]->size();s++)       
      {
         hPixelTrace->SetBinContent(s+1,(iFADCTraceInPixel[iPix])->at(s));
      }
@@ -124,7 +130,7 @@ void FindBin(int iPix,int *nx, int *ny)
 
  *ny = 4*MUSIC_row+MUSIC_Channel%4+1; 
  *nx = 2*MUSIC_column+MUSIC_Channel/4+1; 
- //cout<<"Pixel "<<iPix<<" x: "<<*nx<<" y: "<<*ny<<endl;
+// cout<<"Pixel "<<iPix<<" x: "<<*nx<<" y: "<<*ny<<endl;
 
 }
 
@@ -178,7 +184,7 @@ void DrawMUSICBoundaries()
    } 
 }
 
-void PlotSPB2Events(string fInputFileName = "/home/nepi/Share/POEMMA/SPB2/SPB2_CT_Simulations/data/test.root")
+void PlotSPB2Events(string fInputFileName = "/home/oscar/Documents/Research/Testing_Events1.root")
 {
        //Open the CARE file
        TFile *fO = new TFile( fInputFileName.c_str(), "READ" );
@@ -224,38 +230,40 @@ void PlotSPB2Events(string fInputFileName = "/home/nepi/Share/POEMMA/SPB2/SPB2_C
        tSimulatedEvents->SetBranchAddress("vTelescopeTriggerBits",&vTelescopeTriggerBits);
 
        cout<<"Looking for tree with camera output"<<endl;
-       TTree *T0 = (TTree*)fO->Get( "Events/T0" );
-	   if( !T0 )
+       TTree *tEvent = (TTree*)fO->Get( "Events/T0" );
+       cout<<tEvent<<endl;
+	   if( !tEvent )
 	     {
 	       cout << "error: tree T0 not found in " << fInputFileName << endl;
 	       cout << "...exiting" << endl;
 	       exit( -1 );
 	     }
 
-       vector<int> *vTriggerCluster;
-       vector<Float_t> *fTimeOverThreshold;
-       vector<Float_t>   *fSumTimeInPixel; 
-       vector<Int_t>   *iQDCInPixel;
-       Int_t           iNumPhotonsInFocalPlane;
-       Float_t         fAzTel ;
-       Float_t         fZnTel ;
-       vector<Bool_t>  *bInLoGain;
+       vector<int> *vTriggerCluster=0;
+       vector<Float_t> *fTimeOverThreshold=0;
+       vector<Float_t>   *fSumTimeInPixel=0; 
+       vector<Int_t>   *iQDCInPixel=0;
+       Int_t           iNumPhotonsInFocalPlane=0;
+       Float_t         fAzTel=0 ;
+       Float_t         fZnTel =0;
+       vector<Bool_t>  *bInLoGain=0;
        iFADCTraceInPixel.assign(iNumPixels,0);
-
-      T0->SetBranchAddress("vGroupsInTriggerCluster",&vTriggerCluster);
-      T0->SetBranchAddress("vTimeOverThreshold",&fTimeOverThreshold);
-      T0->SetBranchAddress("vSumTimeInPixel", &fSumTimeInPixel);
-      T0->SetBranchAddress("vPEInPixel", &iPEInPixel);
-      T0->SetBranchAddress("vQDCValue", &iQDCInPixel);
-      T0->SetBranchAddress("iPhotonsInFocalPlane", &iNumPhotonsInFocalPlane);
-      T0->SetBranchAddress("fAzTel", &fAzTel);
-      T0->SetBranchAddress("fZnTel", &fZnTel);
-      T0->SetBranchAddress("vHiLoGainBit", &bInLoGain);
+       cout<<&iFADCTraceInPixel[0]<<endl;
+      tEvent->SetBranchAddress("vGroupsInTriggerCluster",&vTriggerCluster);
+      //tEvent->SetBranchAddress("vTimeOverThreshold",&fTimeOverThreshold);
+      //tEvent->SetBranchAddress("vSumTimeInPixel", &fSumTimeInPixel);
+      tEvent->SetBranchAddress("vPEInPixel", &iPEInPixel);
+      //tEvent->SetBranchAddress("vQDCValue", &iQDCInPixel);
+      tEvent->SetBranchAddress("iPhotonsInFocalPlane", &iNumPhotonsInFocalPlane);
+      tEvent->SetBranchAddress("fAzTel", &fAzTel);
+      tEvent->SetBranchAddress("fZnTel", &fZnTel);
+      //tEvent->SetBranchAddress("vHiLoGainBit", &bInLoGain);
       TString name;
-      for(int g=0;g<iNumPixels;g++)       
-         {                                                                                                     
-            name.Form("vFADCTraces%i",g);         
-            T0->SetBranchAddress(name,&(iFADCTraceInPixel[g]));
+      for(int g=0;g<iNumPixels;g++)
+         {
+            name.Form("vFADCTraces%i",g);
+            //cout<<name<<endl;
+           tEvent->SetBranchAddress(name,&iFADCTraceInPixel[g]);
          }
 
       //Stuff for visualizing
@@ -266,34 +274,42 @@ void PlotSPB2Events(string fInputFileName = "/home/nepi/Share/POEMMA/SPB2/SPB2_C
       TH2F *hDisplay = new TH2F("hDisplay","Charge",32,-0.5,31.5,16,-0.5,15.5);
       hDisplay->SetStats(0);
       hDisplay->Draw("colz");
+      int n;
       DrawMUSICBoundaries(); 
        //looping over events doing something
       TRandom3 rand;
+       bool okay=true;
        while(1)
          {
-           int n = rand.Integer(tSimulatedEvents->GetEntries());
-           tSimulatedEvents->GetEntry( n );
-           //if(arrayTriggerBit)
-             {
-                hDisplay->Clear();
-                cout<<"Event "<<n<<" is triggered"<<endl; 
-                T0->GetEntry(n);
-                for(int g=0;g<iNumPixels;g++)       
-                   {                                             
+           n = rand.Integer(tSimulatedEvents->GetEntries());
+           cout<<n<<endl;
+           tSimulatedEvents->GetEntry(n);
+           cout<<uNumTelescopes<<endl;
+      	     
+	   if(arrayTriggerBit){
+             
+               // hDisplay->Clear();
+            //cout<<"Event "<<n<<" is triggered"<<endl; 
+           // tEvent->Print();
+	    //cout<<tEvent<<endl;
+            tEvent->GetEntry(n);
+            //okay = false;
+            for(int g=0;g<iNumPixels;g++)       
+               {                                             
                 
-                    //cout<<"Pixel "<<g<<endl;
-                    //cout<<"PEs: "<<iPEInPixel->at(g)<<endl;
-                    //cout<<"QDC: "<<iQDCInPixel->at(g)<<endl;
+                //cout<<"Pixel "<<g<<endl;
+                //cout<<"PEs: "<<iPEInPixel->at(g)<<endl;
+               // cout<<"QDC: "<<iQDCInPixel->at(g)<<endl;
                     int nx, ny;
                     FindBin(g,&nx,&ny);
                     hDisplay->SetBinContent(nx,ny,iPEInPixel->at(g));
                     //cout<<endl<<endl;
-                   }
+               }   
                cDisplay->cd(1)->Modified();
                cDisplay->cd(1)->Update();
                if(!HandleInput())
                   break;
               }
            }
- 
-}
+	}
+
