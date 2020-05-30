@@ -281,6 +281,7 @@ void PlotSPB2Events(string fInputFileName = "/home/oscar/Documents/Research/Test
        bool okay=true;
        while(1)
          {
+<<<<<<< HEAD
            n = rand.Integer(tSimulatedEvents->GetEntries());
            cout<<n<<endl;
            tSimulatedEvents->GetEntry(n);
@@ -296,6 +297,17 @@ void PlotSPB2Events(string fInputFileName = "/home/oscar/Documents/Research/Test
             //okay = false;
             for(int g=0;g<iNumPixels;g++)       
                {                                             
+=======
+           int n = rand.Integer(tSimulatedEvents->GetEntries());
+           tSimulatedEvents->GetEntry( n );
+           if(arrayTriggerBit)
+             {
+                hDisplay->Clear();
+                cout<<"Event "<<n<<" is triggered"<<endl; 
+                T0->GetEntry(n);
+                for(int g=0;g<iNumPixels;g++)       
+                   {                                             
+>>>>>>> 038fdf5b7512b8e3c4aa82cdaa5017c5ea937324
                 
                 //cout<<"Pixel "<<g<<endl;
                 //cout<<"PEs: "<<iPEInPixel->at(g)<<endl;

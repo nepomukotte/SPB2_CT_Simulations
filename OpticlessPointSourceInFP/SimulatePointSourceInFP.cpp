@@ -275,7 +275,7 @@ int main( int argc, char **argv )
 
  WriteAllTelTree(RootWriter,pilot.outFileHeaderTree);
 
- double fPhotonToCameraTime = 30;
+ double fPhotonToCameraTime = 0;
  double fPhotWaveLgt = 300;
 
  // get ray tracing results
