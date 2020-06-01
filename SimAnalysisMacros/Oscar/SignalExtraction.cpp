@@ -49,6 +49,7 @@ int SignalExtraction (){
 	TH2 *h_camera_integ = new TH2F ("h_camera_integ", "Camera Charge", 32,-0.5,32.5,16,-0.5,15.5);
 	TTree *tSimulatedEvents = (TTree*)file->Get( "Events/tSimulatedEvents" );
 	TTree *tEvent = (TTree*)file->Get( "Events/T0" );
+	TGraph *gr_mean = new TGraph();
 
 	for (int i = 0; i<nPixels; i++){
 		tEvent->SetBranchAddress(TString::Format("vFADCTraces%i",i),&iTrace[i]);
@@ -69,13 +70,14 @@ int SignalExtraction (){
 	}*/
 	cout << cEvent <<endl;
 
-	tSimulatedEvents->GetEntry(9472);
+	tSimulatedEvents->GetEntry(9574);
 	tEvent->GetEntry(9574);
 	for (int i=0; i<nPixels; i++){
 		sum_base=0;
 		FindBin(i,&nx,&ny);
 		for (int j = 0; j<nSampleOffset; j++){
 			sum_base += iTrace[i]->at(j);
+			gr_mean->SetPoint(nSampleOffset*i+j,i,iTrace[i]->at(j));
 		}
 		avg_base = sum_base*(0.333);
 		//cout << avg_base << endl;
@@ -94,6 +96,12 @@ int SignalExtraction (){
 	TCanvas *c_camera_charge = new TCanvas("c_camera_charge", "Camera Charge Canvas",800,500);
 	h_camera_integ->Draw("colz");
 	h_camera_integ->SetStats(0);
+
+	TCanvas *c_mean = new TCanvas("c_mean", "Mean Dispersions", 800,500);
+	gr_mean->GetHistogram()->Draw();
+	gr_mean->GetHistogram()->GetXaxis()->SetTitle("Pixel Number");
+	gr_mean->GetHistogram()->GetYaxis()->SetTitle("Pedestal");
+	gr_mean->Draw("P");
 
 	return 0;
 }
