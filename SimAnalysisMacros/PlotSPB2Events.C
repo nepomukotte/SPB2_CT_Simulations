@@ -1,3 +1,5 @@
+#include <TH1F.h>
+
 //You need to make sure that this is the actual number of pixels in the camera
 const int iNumPixels = 512; 
 vector< vector<Int_t> *>   iFADCTraceInPixel;
@@ -275,9 +277,13 @@ void PlotSPB2Events(string fInputFileName = "/home/nepi/Share/POEMMA/SPB2/SPB2_C
            tSimulatedEvents->GetEntry( n );
            if(arrayTriggerBit)
              {
-                hDisplay->Clear();
-                cout<<"Event "<<n<<" is triggered"<<endl; 
                 T0->GetEntry(n);
+
+                hDisplay->Clear();
+                cout<<"Event "<<n<<" is triggered. MUSIC chips that triggered: ";
+                for(int m=0; m<vTriggerCluster->size();m++)
+                  cout<<vTriggerCluster->at(m)<<" ";
+                cout<<endl; 
                 for(int g=0;g<iNumPixels;g++)       
                    {                                             
                 
