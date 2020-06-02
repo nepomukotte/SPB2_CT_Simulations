@@ -21,6 +21,9 @@ TLatex *text = 0;
 TCanvas *cDisplay = 0;
 TH1F *hPixelTrace =0;
 TH1F *hBaseDist =0;
+TH1F *hBaseTemp =0;
+TH1F *hBaseMean =0;
+TH1F *hBaseRMS =0;
 
 int main(){
 
@@ -75,7 +78,7 @@ void ShowPixeltrace(int iPix)
 		hPixelTrace->SetBinContent(s+1,(iFADCTraceInPixel[iPix])->at(s));
 	}
 
-	cDisplay->cd(2);
+	cDisplay->cd(3);
 	hPixelTrace->Draw();
 	gPad->Modified();
 	gPad->Update();
@@ -99,14 +102,57 @@ void ShowBaseDist(int iPix)
   {
     hBaseDist->Fill(BaselineDist[s][iPix]);
   }
-
-  double BaseIntegral = hBaseDist->Integral(1,50);
-  cout<<BaseIntegral<<endl;
-  //hBaseDist->SetStats(0);
-
-  cDisplay->cd(5);
-  gStyle->SetOptStat(1101);
+  
+  cDisplay->cd(7);
   hBaseDist->Draw();
+  gPad->Modified();
+  gPad->Update();
+}
+
+void GetPixMeanRMS()
+{
+  if(hBaseTemp==0)
+  {
+    hBaseTemp = new TH1F("hBaseTemp","Temporary Histogram for Baseline",100,495.0,505.0);
+  }
+
+  if(hBaseMean==0)
+  {
+    hBaseMean = new TH1F("hBaseMean","Pixel Baseline Mean",50,499.0,500.0);
+    hBaseMean->SetStats(0);
+    hBaseMean->GetXaxis()->SetTitle("Mean");
+    hBaseMean->GetYaxis()->SetTitle("Mean Frequency");
+  }
+
+  if(hBaseRMS==0)
+  {
+    hBaseRMS = new TH1F("hBaseRMS","Pixel Baseline RMS",50,1.0,1.5);
+    hBaseRMS->SetStats(0);
+    hBaseRMS->GetXaxis()->SetTitle("RMS");
+    hBaseRMS->GetYaxis()->SetTitle("RMS Frequency");
+  }
+  
+  hBaseTemp->Reset();
+  hBaseMean->Reset();
+  hBaseRMS->Reset();
+  
+  for (int i=0; i<iNumPixels; i++)
+    {
+      for(int s=0;s<BaselineDist.size();s++)
+	{
+	  hBaseTemp->Fill(BaselineDist[s][i]);
+	}
+      hBaseRMS->Fill(hBaseTemp->GetRMS());
+      hBaseMean->Fill(hBaseTemp->GetMean());
+      hBaseTemp->Reset();
+    }
+  cDisplay->cd(5);
+  hBaseMean->Draw();
+  gPad->Modified();
+  gPad->Update();
+  
+  cDisplay->cd(6);
+  hBaseRMS->Draw();
   gPad->Modified();
   gPad->Update();
 }
@@ -114,7 +160,7 @@ void ShowBaseDist(int iPix)
 int FindPixel(int x, int y)
 {
  //cout<<x<<"  "<<y<<endl;
- //column    
+ //column
  int MUSIC_column = x/2;
 
  //cout<<"MUSIC column "<<MUSIC_column<<endl;
@@ -127,7 +173,7 @@ int FindPixel(int x, int y)
  //cout<<"MUSIC_ID "<<MUSIC_ID<<endl;
 
  //Channel in MUSIC
- int MUSIC_Channel = y%4+4*(x%2); 
+ int MUSIC_Channel = y%4+4*(x%2);
  //cout<<"MUSIC_Channel "<<MUSIC_Channel<<endl;
 
  return MUSIC_row*8*16+MUSIC_column*8+MUSIC_Channel;
@@ -136,7 +182,7 @@ int FindPixel(int x, int y)
 void ShowInfoAtCursor(int x, int y)
 {
  //cout<<x<<"  "<<y<<endl;
- //column    
+ //column
  int MUSIC_column = x/2;
 
  //cout<<"MUSIC column "<<MUSIC_column<<endl;
@@ -149,7 +195,7 @@ void ShowInfoAtCursor(int x, int y)
  //cout<<"MUSIC_ID "<<MUSIC_ID<<endl;
 
  //Channel in MUSIC
- int MUSIC_Channel = y%4+4*(x%2); 
+ int MUSIC_Channel = y%4+4*(x%2);
  //cout<<"MUSIC_Channel "<<MUSIC_Channel<<endl;
 
  int PixID = MUSIC_row*8*16+MUSIC_column*8+MUSIC_Channel;
@@ -239,7 +285,7 @@ void PixelClicked2() {
     }
 
    if (event == 11){
-      //cout<<pix<<endl;  
+      //cout<<pix<<endl;
       ShowBaseDist(pix);
    }
 }
@@ -249,7 +295,7 @@ void DrawMUSICBoundaries()
   TBox *b = new TBox(-.5,-0.5,1.5,3.5);
   b->SetFillStyle(0);
   b->SetLineColor(kRed);
-  b->Draw(); 
+  b->Draw();
   TPoint p;
   for(int i=0;i<iNumPixels/8;i++)
    {
@@ -259,8 +305,8 @@ void DrawMUSICBoundaries()
      bn->SetY1((i/16)*4-0.5);
      bn->SetY2((i/16)*4+3.5);
      bn->Draw();
-    
-   } 
+
+   }
 }
 
 void CalcBaseline(string fInputFileName)
@@ -275,10 +321,10 @@ void CalcBaseline(string fInputFileName)
 	}
 
 	cout<<"Have opened the file with the simulated events: "<<fInputFileName.c_str()<<endl;
-      
+
     UInt_t uNumTelescopes;
     Float_t energy;
-    UInt_t eventNumber ; 
+    UInt_t eventNumber;
     Float_t xcore ;
     Float_t ycore ;
     Float_t azPrim ;
@@ -297,7 +343,7 @@ void CalcBaseline(string fInputFileName)
 	    exit( -1 );
 	}
 
-	tSimulatedEvents->SetBranchAddress("energy",&energy);
+    tSimulatedEvents->SetBranchAddress("energy",&energy);
     tSimulatedEvents->SetBranchAddress("ZnPrim",&znPrim);
     tSimulatedEvents->SetBranchAddress("AzPrim",&azPrim);
     tSimulatedEvents->SetBranchAddress("xcore",&xcore);
@@ -319,7 +365,7 @@ void CalcBaseline(string fInputFileName)
 
     vector<int> *vTriggerCluster;
     vector<Float_t> *fTimeOverThreshold;
-    vector<Float_t>   *fSumTimeInPixel; 
+    vector<Float_t>   *fSumTimeInPixel;
     vector<Int_t>   *iQDCInPixel;
     Int_t           iNumPhotonsInFocalPlane;
     Float_t         fAzTel ;
@@ -327,7 +373,7 @@ void CalcBaseline(string fInputFileName)
     vector<Bool_t>  *bInLoGain;
     iFADCTraceInPixel.assign(iNumPixels,0);
 
-    //T0->SetBranchAddress("vGroupsInTriggerCluster",&vTriggerCluster);
+    T0->SetBranchAddress("vGroupsInTriggerCluster",&vTriggerCluster);
     //T0->SetBranchAddress("vTimeOverThreshold",&fTimeOverThreshold);
     //T0->SetBranchAddress("vSumTimeInPixel", &fSumTimeInPixel);
     T0->SetBranchAddress("vPEInPixel", &iPEInPixel);
@@ -381,13 +427,14 @@ void CalcBaseline(string fInputFileName)
   for(int i=0;i<iNumPixels;i++)
   {
   	Baseline[i] = Baseline[i]*MultiplyFactor1;
-  	//cout<<"Baseline for pixel["<<i<<"]: "<<Baseline[i]<<endl;
   }
 
   cDisplay = new TCanvas("cDisplay","Display",2000,1000);
-  cDisplay->Divide(3,2);
+  cDisplay->Divide(3,3);
 
-  cDisplay->cd(1);
+  GetPixMeanRMS();
+
+  cDisplay->cd(4);
   gPad->AddExec("ex","PixelClicked2()");
   TH2F *h1Display = new TH2F("h1Display","Baseline",32,-0.5,31.5,16,-0.5,15.5);
   h1Display->SetStats(0);
@@ -401,17 +448,17 @@ void CalcBaseline(string fInputFileName)
   	FindBin(g,&nx,&ny);
   	h1Display->SetBinContent(nx,ny,Baseline[g]);
   }
-  cDisplay->cd(1)->Modified();
-  cDisplay->cd(1)->Update();
+  cDisplay->cd(4)->Modified();
+  cDisplay->cd(4)->Update();
 
-  cDisplay->cd(4);
-  gPad->AddExec("ex","PixelClicked()");
+  cDisplay->cd(2);
+  //gPad->AddExec("ex","PixelClicked()");
   TH2F *h4Display = new TH2F("h4Display","Integrated Charge",32,-0.5,31.5,16,-0.5,15.5);
   h4Display->SetStats(0);
   h4Display->Draw("colz");
   DrawMUSICBoundaries();
 
-  cDisplay->cd(3);
+  cDisplay->cd(1);
   gPad->AddExec("ex","PixelClicked()");
   TH2F *h3Display = new TH2F("h3Display","Charge",32,-0.5,31.5,16,-0.5,15.5);
   h3Display->SetStats(0);
@@ -438,8 +485,8 @@ void CalcBaseline(string fInputFileName)
   	if(arrayTriggerBit)
   	{
   		h3Display->Clear();
-  		cDisplay->cd(3);
-  		cout<<"Event "<<n<<" is triggered"<<endl; 
+  		cDisplay->cd(1);
+  		cout<<"Event "<<n<<" is triggered"<<endl;
   		T0->GetEntry(n);
   		for(int g=0;g<iNumPixels;g++)
   		{
@@ -447,27 +494,27 @@ void CalcBaseline(string fInputFileName)
   			FindBin(g,&nx,&ny);
   			h3Display->SetBinContent(nx,ny,iPEInPixel->at(g));
   		}
-  		cDisplay->cd(3)->Modified();
-  		cDisplay->cd(3)->Update();
+  		cDisplay->cd(1)->Modified();
+  		cDisplay->cd(1)->Update();
 
   		h4Display->Clear();
-  		cDisplay->cd(4);
-  		cout<<" Integrating over the trace"<<endl;
+  		cDisplay->cd(2);
+  		cout<<"Integrating over the trace"<<endl;
   		for(int i=0;i<iNumPixels;i++)
   		{
   			for(int j=5;j<11;j++)
   			{
   				PixelCharge[i] += ((iFADCTraceInPixel[i])->at(j));
   			}
-        PixelCharge[i] = PixelCharge[i] - (6*Baseline[i]);
+			PixelCharge[i] = PixelCharge[i] - (6*Baseline[i]);
 
   			int nx, ny;
   			FindBin(i,&nx,&ny);
   			h4Display->SetBinContent(nx,ny,PixelCharge[i]*MultiplyFactor3);
   			PixelCharge[i] = 0;
   		}
-  		cDisplay->cd(4)->Modified();
-  		cDisplay->cd(4)->Update();
+  		cDisplay->cd(2)->Modified();
+  		cDisplay->cd(2)->Update();
 
   		if(!HandleInput())
   			break;
