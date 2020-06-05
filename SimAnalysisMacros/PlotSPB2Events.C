@@ -184,7 +184,7 @@ void DrawMUSICBoundaries()
    } 
 }
 
-void PlotSPB2Events(string fInputFileName = "/home/oscar/Documents/Research/Testing_Events1.root")
+void PlotSPB2Events(string fInputFileName = "/home/oscar/Documents/Research/TestAnalog.root")
 {
        //Open the CARE file
        TFile *fO = new TFile( fInputFileName.c_str(), "READ" );
