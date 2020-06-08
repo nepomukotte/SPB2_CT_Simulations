@@ -1,6 +1,7 @@
 #include <iostream>
 #include <TH1F.h>
 #include <TTimer.h>
+#include <TGraph.h>
 #include <vector>
 #include <chrono>
 
@@ -15,6 +16,7 @@ vector< vector<Int_t> *>   iFADCTraceInPixel;
 vector<Int_t>   *iPEInPixel;
 double Baseline[iNumPixels];
 vector<vector<double> > BaselineDist;
+vector<vector<int> > vPEDC;
 double PixelCharge[iNumPixels];
 int iLastPix = -1;
 TLatex *text = 0;
@@ -46,7 +48,7 @@ Bool_t HandleInput()
       // While reading the input process gui events asynchronously
       //
       timer.TurnOn();
-      TString input = Getline("Type 'q' to exit, <return> to go on:\n");
+      TString input = Getline("Type 'q' to exit, <return> to go on:");
       timer.TurnOff();
 
       if (input=="q\n")
@@ -390,7 +392,7 @@ void CalcBaseline(string fInputFileName)
     }
 
 
-  int BaselineWidth = 5;
+  int BaselineWidth = 4;
 	float MultiplyFactor1 = 0;
   float MultiplyFactor2 = (1.0/BaselineWidth);
 	int TotalEvents = tSimulatedEvents->GetEntries();
@@ -436,7 +438,7 @@ void CalcBaseline(string fInputFileName)
 
   cDisplay->cd(4);
   gPad->AddExec("ex","PixelClicked2()");
-  TH2F *h1Display = new TH2F("h1Display","Baseline",32,-0.5,31.5,16,-0.5,15.5);
+  TH2F *h1Display = new TH2F("h1Display","Average Baseline",32,-0.5,31.5,16,-0.5,15.5);
   h1Display->SetStats(0);
   h1Display->Draw("colz");
   DrawMUSICBoundaries();
@@ -452,8 +454,7 @@ void CalcBaseline(string fInputFileName)
   cDisplay->cd(4)->Update();
 
   cDisplay->cd(2);
-  //gPad->AddExec("ex","PixelClicked()");
-  TH2F *h4Display = new TH2F("h4Display","Integrated Charge",32,-0.5,31.5,16,-0.5,15.5);
+  TH2F *h4Display = new TH2F("h4Display","DC based on Trace",32,-0.5,31.5,16,-0.5,15.5);
   h4Display->SetStats(0);
   h4Display->Draw("colz");
   DrawMUSICBoundaries();
@@ -465,22 +466,75 @@ void CalcBaseline(string fInputFileName)
   h3Display->Draw("colz");
   DrawMUSICBoundaries();
 
-  float MultiplyFactor3 = (1.0/2.12);
+  // This section calculates the DC and PE for each event and its fired pixel
+  vector<int> DCValue;
+  vector<int> PEValue;
+  int BeginPixelID =0;
+  int TotalCharge =0;
 
-/*
-  std::vector<int>::iterator result;
   for (int i=0; i<TriggeredEventsID.size(); i++)
   {
     tSimulatedEvents->GetEntry(TriggeredEventsID[i]);
     T0->GetEntry(TriggeredEventsID[i]);
-    result = max_element(iPEInPixel->at(0), iPEInPixel->at(TriggeredEventsID.size())); //[TriggeredEventsID.size()]);
+    BeginPixelID = vTriggerCluster->at(0)*8;
+    for(int j=BeginPixelID;j<BeginPixelID+16;j++)
+      {
+	if((iPEInPixel->at(j)) != 0)
+	  {
+	    PEValue.push_back(iPEInPixel->at(j));
+  	    for(int k=5; k<10; k++)
+	      {
+		TotalCharge += ((iFADCTraceInPixel[j])->at(k));
+	      }
+	    TotalCharge = TotalCharge - (5*Baseline[j]);
+	    DCValue.push_back(TotalCharge);
+	    if (((iPEInPixel->at(j)) > 180) && (TotalCharge < 300))
+	      {
+		cout<<"event#: "<<TriggeredEventsID[i]<<""<<"\tpixel#: "<<j<<"\tPE: "<<iPEInPixel->at(j)<<"\tDC: "<<TotalCharge<<endl;
+	      }
+	    TotalCharge=0;
+	  }
+      }
   }
-*/
 
+  /*
+  float MultiplyFactor3;
+  cDisplay->cd(8);
+  TGraph *ScatDCPE = new TGraph(PEValue.size(),&PEValue[0],&DCValue[0]);
+  ScatDCPE->GetHistogram()->Draw();
+  ScatDCPE->GetHistogram()->SetTitle("DC vs. PE TGraph");
+  ScatDCPE->GetHistogram()->GetXaxis()->SetTitle("PE");
+  ScatDCPE->GetHistogram()->GetYaxis()->SetTitle("DC");
+  TF1 *fDCPE = new TF1("fDCPE","[0]*x",0,300);
+  fDCPE->SetParNames("slope");
+  ScatDCPE->Fit(fDCPE);
+  ScatDCPE->Draw("AP");
+  MultiplyFactor3 = (1.0/fDCPE->GetParameter(0));
+  */
+
+  // This section fills us a 2D histogram with DC and PE and finds the ratio by fitting it to f(x) = x
+  cDisplay->cd(8);
+  float MultiplyFactor3;
+  TH2D *hScatDCPE = new TH2D("hScatDCPE","DC vs. PE Histogram",100,-20,300,100,-20,600);
+  hScatDCPE->Clear();
+  hScatDCPE->SetStats(0);
+  for (int i=0; i<PEValue.size(); i++)
+    {
+      hScatDCPE->Fill(PEValue[i], DCValue[i]);
+    }
+  TF1 *fDCPE = new TF1("fDCPE","[0]*x",0,300);
+  fDCPE->SetParNames("slope");
+  hScatDCPE->Fit(fDCPE);
+  hScatDCPE->Draw("SCAT");
+  MultiplyFactor3 = (1.0/fDCPE->GetParameter(0));
+  cDisplay->cd(8)->Modified();
+  cDisplay->cd(8)->Update();
+  
   TRandom3 rand;
   while(1)
   {
-  	int n = rand.Integer(tSimulatedEvents->GetEntries());
+        int n = rand.Integer(tSimulatedEvents->GetEntries());
+        //int n = 9589;  //9406(34,42), 9542(78,86), 9589(9,17)
   	tSimulatedEvents->GetEntry(n);
   	if(arrayTriggerBit)
   	{
@@ -502,11 +556,11 @@ void CalcBaseline(string fInputFileName)
   		cout<<"Integrating over the trace"<<endl;
   		for(int i=0;i<iNumPixels;i++)
   		{
-  			for(int j=5;j<11;j++)
+  			for(int j=5;j<10;j++)
   			{
   				PixelCharge[i] += ((iFADCTraceInPixel[i])->at(j));
   			}
-			PixelCharge[i] = PixelCharge[i] - (6*Baseline[i]);
+			PixelCharge[i] = PixelCharge[i] - (5*Baseline[i]);
 
   			int nx, ny;
   			FindBin(i,&nx,&ny);
