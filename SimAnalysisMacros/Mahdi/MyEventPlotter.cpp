@@ -29,7 +29,7 @@ TH1F *hBaseRMS =0;
 
 int main(){
 
-	string FileName = "/home/mahdi/Programs/SPB2/SPB2_CT_Simulations/data/test.root";
+	string FileName = "/home/oscar/Documents/Research/TestAnalog.root";
 
 	auto start = high_resolution_clock::now();
 	CalcBaseline(FileName);
