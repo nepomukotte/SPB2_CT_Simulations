@@ -567,6 +567,7 @@ void CalcBaseline(string fInputFileName)
   				h4Display->SetBinContent(nx,ny,PixelCharge[i]*MultiplyFactor3);
   				PixelCharge[i] = 0;
   			}
+  			h4Display->SetMinimum(0);
   			cDisplay->cd(2)->Modified();
   			cDisplay->cd(2)->Update();
 
