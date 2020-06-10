@@ -466,7 +466,7 @@ void CalcBaseline(string fInputFileName)
 	h3Display->Draw("colz");
 	DrawMUSICBoundaries();
 
-	// This section calculates the DC and PE for each event and its fired pixel
+	// This section calculates the DC and PE for each event and its fired pixels
 	vector<int> DCValue;
 	vector<int> PEValue;
 	int BeginPixelID =0;
@@ -482,11 +482,11 @@ void CalcBaseline(string fInputFileName)
 			if((iPEInPixel->at(j)) != 0)
 			{
 				PEValue.push_back(iPEInPixel->at(j));
-				for(int k=5; k<10; k++)
+				for(int k=4; k<10; k++)
 				{
 					TotalCharge += ((iFADCTraceInPixel[j])->at(k));
 				}
-				TotalCharge = TotalCharge - (5*Baseline[j]);
+				TotalCharge = TotalCharge - (6*Baseline[j]);
 				DCValue.push_back(TotalCharge);
 				if (((iPEInPixel->at(j)) > 180) && (TotalCharge < 300))
 				{
@@ -531,6 +531,7 @@ void CalcBaseline(string fInputFileName)
 	cDisplay->cd(8)->Update();
 
 	TRandom3 rand;
+	double ChargeThreshold = 20.0;
 	while(1)
 	{
 		int n = rand.Integer(tSimulatedEvents->GetEntries());
@@ -551,6 +552,11 @@ void CalcBaseline(string fInputFileName)
   			cDisplay->cd(1)->Modified();
   			cDisplay->cd(1)->Update();
 
+  			for (int i=0; i<vTriggerCluster->size(); i++)
+  			{
+  				cout<<vTriggerCluster->at(i)<<endl;
+  			}
+
   			h4Display->Clear();
   			cDisplay->cd(2);
   			cout<<"Integrating over the trace"<<endl;
@@ -561,11 +567,17 @@ void CalcBaseline(string fInputFileName)
   						PixelCharge[i] += ((iFADCTraceInPixel[i])->at(j));
   					}
 				PixelCharge[i] = PixelCharge[i] - (5*Baseline[i]);
-
   				int nx, ny;
   				FindBin(i,&nx,&ny);
-  				h4Display->SetBinContent(nx,ny,PixelCharge[i]*MultiplyFactor3);
-  				PixelCharge[i] = 0;
+				if(PixelCharge[i] > ChargeThreshold)
+				{
+	  				h4Display->SetBinContent(nx,ny,PixelCharge[i]*MultiplyFactor3);
+				}
+				else
+				{
+					h4Display->SetBinContent(nx,ny,-1);
+				}
+				PixelCharge[i] = 0;
   			}
   			h4Display->SetMinimum(0);
   			cDisplay->cd(2)->Modified();
