@@ -16,10 +16,13 @@ void PlotSPB2Events(string fInputFileName);
 
 int iLastPix = -1;
 const int iNumPixels = 512; 
+const int SignalStart = 4;
+const int SignalEnd = 10;
+const int SignalWidth = SignalEnd - SignalStart;
 double Baseline[iNumPixels];
 double PixelCharge[iNumPixels];
-vector< vector<Int_t> *>   iFADCTraceInPixel;
-vector<Int_t>   *iPEInPixel;
+vector< vector<Int_t> *>  iFADCTraceInPixel;
+vector<Int_t>  *iPEInPixel;
 vector<vector<int> > vFiredPixels;
 vector<vector<double> > BaselineDist;
 TLatex *text = 0;
@@ -519,11 +522,11 @@ void PlotSPB2Events(string fInputFileName)
 			if((iPEInPixel->at(j)) != 0)
 			{
 				PEValue.push_back(iPEInPixel->at(j));
-				for(int k=4; k<10; k++)
+				for(int k=SignalStart; k<SignalEnd; k++)
 				{
 					TotalCharge += ((iFADCTraceInPixel[j])->at(k));
 				}
-				TotalCharge = TotalCharge - (6*Baseline[j]);
+				TotalCharge = TotalCharge - (SignalWidth*Baseline[j]);
 				DCValue.push_back(TotalCharge);
 				TotalCharge=0;
 			}
@@ -601,11 +604,11 @@ void PlotSPB2Events(string fInputFileName)
   			FirstPixelID = vTriggerCluster->at(0)*8;
   			for(int i=FirstPixelID; i<FirstPixelID+16; i++)
   			{
-  				for(int j=4; j<10; j++)
+  				for(int j=SignalStart; j<SignalEnd; j++)
   					{
   						PixelCharge[i] += ((iFADCTraceInPixel[i])->at(j));
   					}
-				PixelCharge[i] = PixelCharge[i] - (6*Baseline[i]);
+				PixelCharge[i] = PixelCharge[i] - (SignalWidth*Baseline[i]);
 			}
 
 			// This section scans through 8 pairs of pixels on the two triggered music
@@ -620,7 +623,7 @@ void PlotSPB2Events(string fInputFileName)
   				int M2PeakTimeIndex =0;
   				int M1PeakValue = 0;
   				int M2PeakValue = 0;
-  				for(int j=4; j<10; j++)
+  				for(int j=SignalStart; j<SignalEnd; j++)
   				{
   					if(iFADCTraceInPixel[i]->at(j) > M1PeakValue)
   					{
@@ -666,11 +669,11 @@ void PlotSPB2Events(string fInputFileName)
 			// to fill up a histogram and plot the extracted signal.
 			for (int m=0; m<vFiredPixels[FiredPixelID].size(); m++)
 			{
-  				for(int j=4; j<10; j++)
+  				for(int j=SignalStart; j<SignalEnd; j++)
   					{
   						PixelCharge[m] += ((iFADCTraceInPixel[vFiredPixels[FiredPixelID][m]])->at(j));
   					}
-				PixelCharge[m] = PixelCharge[m] - (6*Baseline[vFiredPixels[FiredPixelID][m]]);
+				PixelCharge[m] = PixelCharge[m] - (SignalWidth*Baseline[vFiredPixels[FiredPixelID][m]]);
 
   				int nx, ny;
   				FindBin(vFiredPixels[FiredPixelID][m], &nx, &ny);
