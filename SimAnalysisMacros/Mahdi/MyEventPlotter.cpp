@@ -527,22 +527,19 @@ void CalcBaseline(string fInputFileName)
 				}
 				TotalCharge = TotalCharge - (6*Baseline[j]);
 				DCValue.push_back(TotalCharge);
-
-				//if (((iPEInPixel->at(j)) > 180) && (TotalCharge < 300))
-				//{
-				//	cout<<"event#: "<<TriggeredEventsID[i]<<""<<"\tpixel#: "<<j<<"\tPE: "<<iPEInPixel->at(j)<<"\tDC: "<<TotalCharge<<endl;
-				//}
 				TotalCharge=0;
 			}
 		}
 	}
 
-	// This section fills us a 2D histogram with DC and PE and finds the ratio by fitting it to f(x) = x
+	// This section fills up a 2D histogram with DC and PE and finds the ratio by fitting it to f(x) = x
 	cDisplay->cd(8);
 	float MultiplyFactor3;
 	TH2D *hScatDCPE = new TH2D("hScatDCPE","DC vs. PE Histogram",100,-20,300,100,-20,600);
 	hScatDCPE->Clear();
 	hScatDCPE->SetStats(0);
+	hScatDCPE->GetXaxis()->SetTitle("PE");
+	hScatDCPE->GetYaxis()->SetTitle("DC");
 	for (int i=0; i<PEValue.size(); i++)
 	{
 	  hScatDCPE->Fill(PEValue[i], DCValue[i]);
@@ -559,6 +556,9 @@ void CalcBaseline(string fInputFileName)
 	cDisplay->cd(9);
 	TProfile* DCProfile;
 	DCProfile = new TProfile("DCProfile","Profile of extracted digital counts",50,0.0,300.0);
+	DCProfile->GetXaxis()->SetTitle("PE");
+	DCProfile->GetYaxis()->SetTitle("DC");
+	DCProfile->SetStats(0);
 	for (int i=0; i<PEValue.size(); i++)
 	{
 	  DCProfile->Fill(PEValue[i], DCValue[i]);
