@@ -12,18 +12,16 @@ using namespace std;
 using namespace std::chrono;
 
 void FindNeighborPixels();
-void CalcBaseline(string fInputFileName);
 void PlotSPB2Events(string fInputFileName);
 
+int iLastPix = -1;
 const int iNumPixels = 512; 
+double Baseline[iNumPixels];
+double PixelCharge[iNumPixels];
 vector< vector<Int_t> *>   iFADCTraceInPixel;
 vector<Int_t>   *iPEInPixel;
-double Baseline[iNumPixels];
 vector<vector<int> > vFiredPixels;
 vector<vector<double> > BaselineDist;
-vector<vector<int> > vPEDC;
-double PixelCharge[iNumPixels];
-int iLastPix = -1;
 TLatex *text = 0;
 TCanvas *cDisplay = 0;
 TH1F *hPixelTrace =0;
@@ -39,7 +37,7 @@ int main(){
 	string FileName = "/home/mahdi/Programs/SPB2/SPB2_CT_Simulations/data/test_50.root";
 
 	//auto start = high_resolution_clock::now();
-	CalcBaseline(FileName);
+	PlotSPB2Events(FileName);
 	//auto stop = high_resolution_clock::now();
 	//auto duration = duration_cast<microseconds>(stop - start);
 	//cout << duration.count() << " microseconds" << endl;
@@ -351,7 +349,7 @@ void DrawMUSICBoundaries()
 	}
 }
 
-void CalcBaseline(string fInputFileName)
+void PlotSPB2Events(string fInputFileName)
 {
 	TFile *fO = new TFile( fInputFileName.c_str(), "READ" );
 	if( fO->IsZombie() )
