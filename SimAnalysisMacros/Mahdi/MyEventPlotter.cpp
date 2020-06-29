@@ -19,6 +19,7 @@ const int iNumPixels = 512;
 const int SignalStart = 4;
 const int SignalEnd = 10;
 const int SignalWidth = SignalEnd - SignalStart;
+const int CoincWindow = 5;
 double Baseline[iNumPixels];
 double PixelCharge[iNumPixels];
 vector< vector<Int_t> *>  iFADCTraceInPixel;
@@ -637,7 +638,7 @@ void PlotSPB2Events(string fInputFileName)
   					}
   				}
 
-				if((abs(M2PeakTimeIndex - M1PeakTimeIndex) < 5) && (M1PeakValue > DCThreshold) && (M2PeakValue > DCThreshold))
+				if((abs(M2PeakTimeIndex - M1PeakTimeIndex) < CoincWindow) && (M1PeakValue > DCThreshold) && (M2PeakValue > DCThreshold))
 				{
 					vPixCandidate.push_back(i);
 					vPixCandidate.push_back(i+8);
