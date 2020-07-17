@@ -1,24 +1,31 @@
 #include <iostream>
+#include <iterator>
 #include <TH1F.h>
 #include <TTimer.h>
 #include <TGraph.h>
+#include <TMath.h>
+#include <TProfile.h>
 #include <vector>
 #include <chrono>
 
 using namespace std;
 using namespace std::chrono;
 
-void CalcBaseline(string fInputFileName);
+void FindNeighborPixels();
 void PlotSPB2Events(string fInputFileName);
 
-const int iNumPixels = 512; 
-vector< vector<Int_t> *>   iFADCTraceInPixel;
-vector<Int_t>   *iPEInPixel;
-double Baseline[iNumPixels];
-vector<vector<double> > BaselineDist;
-vector<vector<int> > vPEDC;
-double PixelCharge[iNumPixels];
 int iLastPix = -1;
+const int iNumPixels = 512; 
+const int SignalStart = 4;
+const int SignalEnd = 10;
+const int SignalWidth = SignalEnd - SignalStart;
+const int CoincWindow = 5;
+double Baseline[iNumPixels];
+double PixelCharge[iNumPixels];
+vector< vector<Int_t> *>  iFADCTraceInPixel;
+vector<Int_t>  *iPEInPixel;
+vector<vector<int> > vFiredPixels;
+vector<vector<double> > BaselineDist;
 TLatex *text = 0;
 TCanvas *cDisplay = 0;
 TH1F *hPixelTrace =0;
@@ -29,12 +36,14 @@ TH1F *hBaseRMS =0;
 
 int main(){
 
-	string FileName = "/home/mahdi/Programs/SPB2/SPB2_CT_Simulations/data/test.root";
+	FindNeighborPixels();
 
-	auto start = high_resolution_clock::now();
-	CalcBaseline(FileName);
-	auto stop = high_resolution_clock::now();
-	auto duration = duration_cast<microseconds>(stop - start);
+	string FileName = "/home/mahdi/Programs/SPB2/SPB2_CT_Simulations/data/test_50.root";
+
+	//auto start = high_resolution_clock::now();
+	PlotSPB2Events(FileName);
+	//auto stop = high_resolution_clock::now();
+	//auto duration = duration_cast<microseconds>(stop - start);
 	//cout << duration.count() << " microseconds" << endl;
 
 }
@@ -214,6 +223,13 @@ void ShowInfoAtCursor(int x, int y)
 	gPad->Update();
 }
 
+int FindPix(int nx, int ny)
+{
+	int PixelID;
+	PixelID = ((nx-1)*4+((ny-1)%4)+((ny-1)>>2)*128);
+	return PixelID;
+}
+
 void FindBin(int iPix,int *nx, int *ny)
 {
 	//MUSIC ID
@@ -231,6 +247,31 @@ void FindBin(int iPix,int *nx, int *ny)
 	*ny = 4*MUSIC_row+MUSIC_Channel%4+1; 
 	*nx = 2*MUSIC_column+MUSIC_Channel/4+1; 
 	//cout<<"Pixel "<<iPix<<" x: "<<*nx<<" y: "<<*ny<<endl;
+}
+
+void FindNeighborPixels()
+{
+	for (int k=0; k<iNumPixels; k++)
+	{
+		int nx, ny;
+		FindBin(k, &nx, &ny);
+		vector<int> vNeighbor;
+		for (int i=nx-1; i<nx+4 && i<33; i++)
+		{
+			for (int j=ny-1; j<ny+2 && j<17; j++)
+			{
+				if((i > 0) && (j > 0))
+				{
+					int tmp = FindPix(i, j);
+					if((tmp < 512) && (tmp > -1))
+					{
+						vNeighbor.push_back(tmp);
+					}
+				}
+			}
+		}
+		vFiredPixels.push_back(vNeighbor);			
+	}
 }
 
 void PixelClicked()
@@ -312,7 +353,7 @@ void DrawMUSICBoundaries()
 	}
 }
 
-void CalcBaseline(string fInputFileName)
+void PlotSPB2Events(string fInputFileName)
 {
 	TFile *fO = new TFile( fInputFileName.c_str(), "READ" );
 	if( fO->IsZombie() )
@@ -454,7 +495,7 @@ void CalcBaseline(string fInputFileName)
 	cDisplay->cd(4)->Update();
 
 	cDisplay->cd(2);
-	TH2F *h4Display = new TH2F("h4Display","DC based on Trace",32,-0.5,31.5,16,-0.5,15.5);
+	TH2F *h4Display = new TH2F("h4Display","Signal after extraction",32,-0.5,31.5,16,-0.5,15.5);
 	h4Display->SetStats(0);
 	h4Display->Draw("colz");
 	DrawMUSICBoundaries();
@@ -482,42 +523,25 @@ void CalcBaseline(string fInputFileName)
 			if((iPEInPixel->at(j)) != 0)
 			{
 				PEValue.push_back(iPEInPixel->at(j));
-				for(int k=4; k<10; k++)
+				for(int k=SignalStart; k<SignalEnd; k++)
 				{
 					TotalCharge += ((iFADCTraceInPixel[j])->at(k));
 				}
-				TotalCharge = TotalCharge - (6*Baseline[j]);
+				TotalCharge = TotalCharge - (SignalWidth*Baseline[j]);
 				DCValue.push_back(TotalCharge);
-				if (((iPEInPixel->at(j)) > 180) && (TotalCharge < 300))
-				{
-					cout<<"event#: "<<TriggeredEventsID[i]<<""<<"\tpixel#: "<<j<<"\tPE: "<<iPEInPixel->at(j)<<"\tDC: "<<TotalCharge<<endl;
-				}
 				TotalCharge=0;
 			}
 		}
 	}
 
-	/*
-	float MultiplyFactor3;
-	cDisplay->cd(8);
-	TGraph *ScatDCPE = new TGraph(PEValue.size(),&PEValue[0],&DCValue[0]);
-	ScatDCPE->GetHistogram()->Draw();
-	ScatDCPE->GetHistogram()->SetTitle("DC vs. PE TGraph");
-	ScatDCPE->GetHistogram()->GetXaxis()->SetTitle("PE");
-	ScatDCPE->GetHistogram()->GetYaxis()->SetTitle("DC");
-	TF1 *fDCPE = new TF1("fDCPE","[0]*x",0,300);
-	fDCPE->SetParNames("slope");
-	ScatDCPE->Fit(fDCPE);
-	ScatDCPE->Draw("AP");
-	MultiplyFactor3 = (1.0/fDCPE->GetParameter(0));
-	*/
-
-	// This section fills us a 2D histogram with DC and PE and finds the ratio by fitting it to f(x) = x
+	// This section fills up a 2D histogram with DC and PE and finds the ratio by fitting it to f(x) = x
 	cDisplay->cd(8);
 	float MultiplyFactor3;
 	TH2D *hScatDCPE = new TH2D("hScatDCPE","DC vs. PE Histogram",100,-20,300,100,-20,600);
 	hScatDCPE->Clear();
 	hScatDCPE->SetStats(0);
+	hScatDCPE->GetXaxis()->SetTitle("PE");
+	hScatDCPE->GetYaxis()->SetTitle("DC");
 	for (int i=0; i<PEValue.size(); i++)
 	{
 	  hScatDCPE->Fill(PEValue[i], DCValue[i]);
@@ -530,15 +554,36 @@ void CalcBaseline(string fInputFileName)
 	cDisplay->cd(8)->Modified();
 	cDisplay->cd(8)->Update();
 
+	// This section calculates the standard deviation of mean for the DC/PE histogram.
+	cDisplay->cd(9);
+	TProfile* DCProfile;
+	DCProfile = new TProfile("DCProfile","Profile of extracted digital counts",50,0.0,300.0);
+	DCProfile->GetXaxis()->SetTitle("PE");
+	DCProfile->GetYaxis()->SetTitle("DC");
+	DCProfile->SetStats(0);
+	for (int i=0; i<PEValue.size(); i++)
+	{
+	  DCProfile->Fill(PEValue[i], DCValue[i]);
+	}
+	DCProfile->Draw();
+	cDisplay->cd(9)->Modified();
+	cDisplay->cd(9)->Update();	
+
+	
 	TRandom3 rand;
-	double ChargeThreshold = 20.0;
+	int FirstPixelID, FiredPixelID;
+	int DCThreshold = 510;
+	double ChargeThreshold = 0.0;
+
+
 	while(1)
 	{
 		int n = rand.Integer(tSimulatedEvents->GetEntries());
-        //int n = 9589;  //9406(34,42), 9542(78,86), 9589(9,17)
   		tSimulatedEvents->GetEntry(n);
   		if(arrayTriggerBit)
   		{
+  			// This section fills up and plots a 2D histogram
+  			// using the simulated number of PEs that hit each pixel.
 	  		h3Display->Clear();
 	  		cDisplay->cd(1);
 	  		cout<<"Event "<<n<<" is triggered"<<endl;
@@ -552,33 +597,103 @@ void CalcBaseline(string fInputFileName)
   			cDisplay->cd(1)->Modified();
   			cDisplay->cd(1)->Update();
 
-  			for (int i=0; i<vTriggerCluster->size(); i++)
-  			{
-  				cout<<vTriggerCluster->at(i)<<endl;
-  			}
-
-  			h4Display->Clear();
+  			h4Display->Reset();
   			cDisplay->cd(2);
-  			cout<<"Integrating over the trace"<<endl;
-  			for(int i=0;i<iNumPixels;i++)
+
+  			// This section calcualtes the total charge of pixels on the
+  			// two triggered music chips from bi-focal coincidence.
+  			FirstPixelID = vTriggerCluster->at(0)*8;
+  			for(int i=FirstPixelID; i<FirstPixelID+16; i++)
   			{
-  				for(int j=5;j<10;j++)
+  				for(int j=SignalStart; j<SignalEnd; j++)
   					{
   						PixelCharge[i] += ((iFADCTraceInPixel[i])->at(j));
   					}
-				PixelCharge[i] = PixelCharge[i] - (5*Baseline[i]);
-  				int nx, ny;
-  				FindBin(i,&nx,&ny);
-				if(PixelCharge[i] > ChargeThreshold)
+				PixelCharge[i] = PixelCharge[i] - (SignalWidth*Baseline[i]);
+			}
+
+			// This section scans through 8 pairs of pixels on the two triggered music
+			// chips and finds the possible candidates for the bi-focal pairs by applying
+			// a few selection rules. The rules are: 1) Peaks from two pixels happen in 50 ns
+			// of each other, and 2) Both peaks are above a certain threshold. At the end, it stores
+			// the pixel ID of both pixels from possible candidates in a vector.
+			vector<int> vPixCandidate;
+  			for(int i=FirstPixelID; i<FirstPixelID+8; i++)
+  			{
+  				int M1PeakTimeIndex =0;
+  				int M2PeakTimeIndex =0;
+  				int M1PeakValue = 0;
+  				int M2PeakValue = 0;
+  				for(int j=SignalStart; j<SignalEnd; j++)
+  				{
+  					if(iFADCTraceInPixel[i]->at(j) > M1PeakValue)
+  					{
+  						M1PeakTimeIndex = j;
+  						M1PeakValue = iFADCTraceInPixel[i]->at(j);
+  					}
+  					if(iFADCTraceInPixel[i+8]->at(j) > M2PeakValue)
+  					{
+  						M2PeakTimeIndex = j;
+  						M2PeakValue = iFADCTraceInPixel[i+8]->at(j);
+  					}
+  				}
+
+				if((abs(M2PeakTimeIndex - M1PeakTimeIndex) < CoincWindow) && (M1PeakValue > DCThreshold) && (M2PeakValue > DCThreshold))
 				{
-	  				h4Display->SetBinContent(nx,ny,PixelCharge[i]*MultiplyFactor3);
+					vPixCandidate.push_back(i);
+					vPixCandidate.push_back(i+8);
+				}
+			}
+
+			// At this point, we have a list of pair candidates. We use the extarcted charge 
+			// of those pair pixels to find out which one is the main fired pixel. If fired pixel
+			// is in the 2nd music, we still record its pair in the first music as main fired pixel,
+			// because later, vFiredPixels expects the ID of the pixel in the 1st music to give us the neighbors.
+			int PixMaxCharge = 0;
+			for (int i=0; i<vPixCandidate.size(); i++)
+			{
+				if(PixelCharge[vPixCandidate[i]] > PixMaxCharge)
+				{
+					FiredPixelID = vPixCandidate[i];
+					PixMaxCharge = PixelCharge[vPixCandidate[i]];
+				}
+			}
+			if (FiredPixelID > FirstPixelID + 7)
+			{
+				cout<<"Fired pixel with maximum charge is in the 2nd music chip."<<endl;
+				FiredPixelID = FiredPixelID - 8;
+			}
+			cout<<"Chosing Pixel ID: "<<FiredPixelID<<" as Fired Pixel"<<endl;
+
+			// At this point, we have determined the ID of the main fired pixel.
+			// So, we use previously calculated neighbor IDs (stored in vFiredPixels)
+			// to fill up a histogram and plot the extracted signal.
+			for (int m=0; m<vFiredPixels[FiredPixelID].size(); m++)
+			{
+  				for(int j=SignalStart; j<SignalEnd; j++)
+  					{
+  						PixelCharge[m] += ((iFADCTraceInPixel[vFiredPixels[FiredPixelID][m]])->at(j));
+  					}
+				PixelCharge[m] = PixelCharge[m] - (SignalWidth*Baseline[vFiredPixels[FiredPixelID][m]]);
+
+  				int nx, ny;
+  				FindBin(vFiredPixels[FiredPixelID][m], &nx, &ny);
+				if(PixelCharge[m] > ChargeThreshold)
+				{
+	  				h4Display->SetBinContent(nx,ny,PixelCharge[m]*MultiplyFactor3);
 				}
 				else
 				{
 					h4Display->SetBinContent(nx,ny,-1);
 				}
-				PixelCharge[i] = 0;
-  			}
+			}
+
+	  		// Resetting pixel charge array for next event
+	  		for(int g=0; g<iNumPixels; g++)
+	  		{
+				PixelCharge[g] = 0;
+			}
+
   			h4Display->SetMinimum(0);
   			cDisplay->cd(2)->Modified();
   			cDisplay->cd(2)->Update();
