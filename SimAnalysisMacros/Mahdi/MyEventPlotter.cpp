@@ -706,7 +706,8 @@ void PlotSPB2Events(string fInputFileName)
     
     hEfficiency->Divide(hTriggered);
     //for (int i=0; i<2*NumofBins; i++)
-    //	hEfficiency->SetBinError(i,sqrt(hEfficiency->GetBinContent(i)));
+    //	if(hEfficiency->GetBinContent(i) != 0)
+    //		hEfficiency->SetBinError(i,sqrt(hEfficiency->GetBinContent(i)));
     hEfficiency->Draw();
 
     cout<<"Total Triggered events: "<<Triggeredevents<<endl;
