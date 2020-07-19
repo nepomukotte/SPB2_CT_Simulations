@@ -300,7 +300,7 @@ for(float logpe=1;logpe<=3;logpe+=0.2)
       float yCamPos = TR3.Uniform(-yCamPosMax,yCamPosMax);
       for(int p=0;p<2;p++) //two points
         {
-          int iNumPhotons = 1; //TR3.Poisson(fMeanPhotoElectrons/0.127214); //division is by the PDE at 300nm, which is assumed all photons have here. This converts back to photons. Converting back to PEs is done in CARE. So make sure the PDE is the same.
+          int iNumPhotons = TR3.Poisson(fMeanPhotoElectrons/0.127214); //division is by the PDE at 300nm, which is assumed all photons have here. This converts back to photons. Converting back to PEs is done in CARE. So make sure the PDE is the same.
           if(p==1)//yeah this is how to simulate the bifocaloptics
             xCamPos+= fBifocalOffset;
           for(int i=0;i<iNumPhotons;i++)
