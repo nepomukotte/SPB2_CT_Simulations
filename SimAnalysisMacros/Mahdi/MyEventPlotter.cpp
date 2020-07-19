@@ -596,7 +596,7 @@ void PlotSPB2Events(string fInputFileName)
 	gDisplay->cd(1)->Update();
 
 
-    TRandom3 rand;
+	TRandom3 rand;
 	int FirstPixelID, FiredPixelID;
 	int DCThreshold = 510;
 	double ChargeThreshold = 0.0;
