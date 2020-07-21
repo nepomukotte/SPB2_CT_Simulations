@@ -228,7 +228,7 @@ void ShowInfoAtCursor(int x, int y)
 int FindPix(int nx, int ny)
 {
 	int PixelID;
-	PixelID = ((nx-1)*4+((ny-1)%4)+((ny-1)>>2)*128);
+	PixelID = ((nx-1)*4+((ny-1)%4)+((ny-1)/4)*128);
 	return PixelID;
 }
 
@@ -576,19 +576,18 @@ void PlotSPB2Events(string fInputFileName)
 	TCanvas *gDisplay = new TCanvas("gDisplay","2nd Display",2000,500);
 	gDisplay->Divide(2,1);
 	gDisplay->cd(1);
-	TH2F *hResolution = new TH2F("hResolutionPE","Resolution vs. PE",NumofBins,0.0,300.0,100,0.0,2.0);
+	TH1F *hResolution = new TH1F("hResolution","Resolution vs. PE",NumofBins,0.0,300.0);
 	hResolution->GetXaxis()->SetTitle("PE");
 	hResolution->GetYaxis()->SetTitle("Resolution");
+	hResolution->GetYaxis()->SetRange(0.0,2.0);
 	hResolution->SetStats(0);
-	hResolution->SetMarkerStyle(20);
-	hResolution->SetMarkerSize(1);
 	for (int i=0; i<NumofBins; i++)
 	{
-		float BinCenter = DCProfile->GetXaxis()->GetBinCenter(i);
-		float ResValue = DCProfile->GetBinError(i)/DCProfile->GetBinContent(i);
-		hResolution->Fill(BinCenter, ResValue);
+		float ResValue = (DCProfile->GetBinError(i+1))/(DCProfile->GetBinContent(i+1));
+		if (ResValue > 0)
+			hResolution->SetBinContent(i+1, ResValue);
 	}
-	hResolution->Draw("SCAT");
+	hResolution->Draw();
 
 	TF1 *fa1 = new TF1("fa1","1/sqrt(x)",0.1,300);
 	fa1->Draw("same");
@@ -693,7 +692,7 @@ void PlotSPB2Events(string fInputFileName)
 			}
 			else
 			{
-				cout<<"ID of skipped events: "<<n<<endl;
+				//cout<<"ID of skipped events: "<<n<<endl;
 			}
 
 	  		// Resetting pixel charge array for next event
@@ -710,7 +709,7 @@ void PlotSPB2Events(string fInputFileName)
     //		hEfficiency->SetBinError(i,sqrt(hEfficiency->GetBinContent(i)));
     hEfficiency->Draw();
 
-    cout<<"Total Triggered events: "<<Triggeredevents<<endl;
+    cout<<"\nTotal Triggered events: "<<Triggeredevents<<endl;
     cout<<"Total Reconstructed Events: "<<ReconstructedEvents<<endl;
     float AlgorithmEfficiency = (ReconstructedEvents*100.0/Triggeredevents);
     cout<<"Your Algorithm Efficiency is: "<<AlgorithmEfficiency<<"%"<<endl;
