@@ -166,7 +166,7 @@ void ExtractSignalTraces (TH2 *h_charge, TH1 *h_trace_iso[15], int *signalID, ve
 
 }
 
-void ExtractSignalTracesFixed (TH2 *h_charge, TH1 *h_trace_iso[15], int *signalID, vector<vector<int>*> iTrace, double baseline,int fw, int offset, TH2 *h_pe_adc, vector<int> *iPePix){
+void ExtractSignalTracesFixed (TH2 *h_charge, TH1 *h_trace_iso[15], int *signalID, vector<vector<int>*> iTrace, double baseline,int fw, int offset, TH2 *h_pe_adc, vector<int> *iPePix, TProfile *p_dc){
 	int nx, ny;
 	int nTrace=0;
 	int iPixNum;
@@ -199,6 +199,7 @@ void ExtractSignalTracesFixed (TH2 *h_charge, TH1 *h_trace_iso[15], int *signalI
 				h_charge->SetBinContent(i,j,integ);
 				if(iPePix->at(iPixNum)!= 0 && integ>0.1){
 					h_pe_adc->Fill((double)iPePix->at(iPixNum),(double)integ);
+					p_dc->Fill((double)iPePix->at(iPixNum),(double)integ);
 				}
 				
 			}
@@ -276,6 +277,8 @@ int SignalExtraction (){
 	TH2 *h_pe_adc_fixed = new TH2F("h_pe_adc","ADC per Pe",500,0,500,4096,0,4096);
 	TH1 *h_total_events = new TH1F("h_total_events","Total Events Bifocal",1002,9.9,1001);
 	TH1 *h_total_events_acc = new TH1F("h_total_events_acc","Total Events Accepted",1002,9.9,1001);
+	TProfile *p_dc = new TProfile("p_dc", "DC Profile", 300,0,300);
+	TH1 *h_resolution = new TH1F("h_resolution","Resolution",300,0,300);
 	TH1 *h_trace;
 	TH1 *h_trace_iso[nPixIsol];
 	TTree *tSimulatedEvents = (TTree*)file->Get( "Events/tSimulatedEvents" );
@@ -294,9 +297,13 @@ int SignalExtraction (){
 	h_camera->SetStats(0);
 	h_total_events_acc->SetStats(0);
 	h_total_events->SetStats(0);
+	h_resolution->SetStats(0);
 
 	h_total_events_acc->Sumw2();
 	h_total_events->Sumw2();
+	h_resolution->Sumw2();
+
+	p_dc->SetErrorOption("s");
 	
 
 	cEvent = 0;
@@ -390,7 +397,7 @@ int SignalExtraction (){
 				if(isAbove){
 					h_total_events_acc->Fill(totalPe);
 					full_width = FindTraceWidth(maxSampleID,iPixSignalID,iTrace,nSampleOffset,avg_base);
-					ExtractSignalTracesFixed(h_camera_integ,h_trace_iso, iPixSignalID, iTrace, avg_base,full_width,nSampleOffset, h_pe_adc_fixed, iPePix);
+					ExtractSignalTracesFixed(h_camera_integ,h_trace_iso, iPixSignalID, iTrace, avg_base,full_width,nSampleOffset, h_pe_adc_fixed, iPePix, p_dc);
 					//ExtractSignalTraces(h_camera_integ,h_trace_iso, iPixSignalID, iTrace, avg_base,full_width,nSampleOffset, h_pe_adc, iPePix);
 					nSignal++;
 				}
@@ -406,6 +413,11 @@ int SignalExtraction (){
 			}
 			//IntegTrace(max_val,maxSampleID,iPixSignalID,iTrace,low_bd,up_bd);	
 		}
+	}
+
+	for(int i=1; i<p_dc->GetNbinsX();i++){
+		cout<<p_dc->GetBinError(i+1)/p_dc->GetBinContent(i+1)<<endl;
+		h_resolution->SetBinContent(i+1,p_dc->GetBinError(i+1)/p_dc->GetBinContent(i+1));
 	}
 	
 	//h_pe_adc->Fit("pol 1","Q","E");
@@ -491,6 +503,15 @@ int SignalExtraction (){
 	h_total_events_acc->GetXaxis()->SetTitle("Total Photoelectron Signal");
 	h_total_events_acc->GetYaxis()->SetTitle("Efficiency");
 
+	TCanvas *c_resolution = new TCanvas("c_resolution", "Resolution", 800,500);
+	h_resolution->Draw("PE");
+	h_resolution->GetXaxis()->SetTitle("Photoelectrons");
+	h_resolution->GetYaxis()->SetTitle("Resolution");
+
+	TCanvas *c_dcProfile = new TCanvas("c_dcProfile", "DC Profile",800,500);
+	p_dc->Draw("PE");
+	p_dc->GetXaxis()->SetTitle("Photoelectrons");
+	p_dc->GetYaxis()->SetTitle("Charge");
 
 	cout<<"NSB Events: "<<nNoise<<"\nSignal Events: "<<nSignal<<endl;
 	cout<<"Threshold Events: "<<nBelow<<endl;
