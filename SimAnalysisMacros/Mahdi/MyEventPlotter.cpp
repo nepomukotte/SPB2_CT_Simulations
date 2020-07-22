@@ -34,6 +34,7 @@ TH1F *hBaseTemp =0;
 TH1F *hBaseMean =0;
 TH1F *hBaseRMS =0;
 
+
 int main(){
 
 	FindNeighborPixels();
@@ -47,6 +48,7 @@ int main(){
 	//cout << duration.count() << " microseconds" << endl;
 
 }
+
 
 Bool_t HandleInput()
 {
@@ -226,7 +228,7 @@ void ShowInfoAtCursor(int x, int y)
 int FindPix(int nx, int ny)
 {
 	int PixelID;
-	PixelID = ((nx-1)*4+((ny-1)%4)+((ny-1)>>2)*128);
+	PixelID = ((nx-1)*4+((ny-1)%4)+((ny-1)/4)*128);
 	return PixelID;
 }
 
@@ -406,25 +408,25 @@ void PlotSPB2Events(string fInputFileName)
     	exit( -1 );
     }
 
-    vector<int> *vTriggerCluster = 0;
-    vector<Float_t> *fTimeOverThreshold;
-    vector<Float_t>   *fSumTimeInPixel;
-    vector<Int_t>   *iQDCInPixel;
-    Int_t           iNumPhotonsInFocalPlane;
-    Float_t         fAzTel ;
-    Float_t         fZnTel ;
-    vector<Bool_t>  *bInLoGain;
+    vector<int>			*vTriggerCluster=0;
+    vector<Float_t>		*fTimeOverThreshold=0;
+    vector<Float_t>		*fSumTimeInPixel=0;
+    vector<Int_t>		*iQDCInPixel=0;
+    Int_t           	iNumPhotonsInFocalPlane;
+    Float_t         	fAzTel ;
+    Float_t         	fZnTel ;
+    vector<Bool_t>  	*bInLoGain;
     iFADCTraceInPixel.assign(iNumPixels,0);
 
     T0->SetBranchAddress("vGroupsInTriggerCluster",&vTriggerCluster);
-    //T0->SetBranchAddress("vTimeOverThreshold",&fTimeOverThreshold);
-    //T0->SetBranchAddress("vSumTimeInPixel", &fSumTimeInPixel);
+    T0->SetBranchAddress("vTimeOverThreshold",&fTimeOverThreshold);
+    T0->SetBranchAddress("vSumTimeInPixel", &fSumTimeInPixel);
     T0->SetBranchAddress("vPEInPixel", &iPEInPixel);
-    //T0->SetBranchAddress("vQDCValue", &iQDCInPixel);
+    T0->SetBranchAddress("vQDCValue", &iQDCInPixel);
     T0->SetBranchAddress("iPhotonsInFocalPlane", &iNumPhotonsInFocalPlane);
     T0->SetBranchAddress("fAzTel", &fAzTel);
     T0->SetBranchAddress("fZnTel", &fZnTel);
-    //T0->SetBranchAddress("vHiLoGainBit", &bInLoGain);
+    T0->SetBranchAddress("vHiLoGainBit", &bInLoGain);
     TString name;
     for(int g=0;g<iNumPixels;g++)
     {
@@ -554,10 +556,11 @@ void PlotSPB2Events(string fInputFileName)
 	cDisplay->cd(8)->Modified();
 	cDisplay->cd(8)->Update();
 
-	// This section calculates the standard deviation of mean for the DC/PE histogram.
+	// This section creates a TProfile to calculate the standard deviation of the mean of DC values.
+	int NumofBins = 50;
 	cDisplay->cd(9);
 	TProfile* DCProfile;
-	DCProfile = new TProfile("DCProfile","Profile of extracted digital counts",50,0.0,300.0);
+	DCProfile = new TProfile("DCProfile","Profile of extracted digital counts",NumofBins,0.0,300.0);
 	DCProfile->GetXaxis()->SetTitle("PE");
 	DCProfile->GetYaxis()->SetTitle("DC");
 	DCProfile->SetStats(0);
@@ -565,16 +568,151 @@ void PlotSPB2Events(string fInputFileName)
 	{
 	  DCProfile->Fill(PEValue[i], DCValue[i]);
 	}
+	DCProfile->SetErrorOption("s");
 	DCProfile->Draw();
 	cDisplay->cd(9)->Modified();
-	cDisplay->cd(9)->Update();	
+	cDisplay->cd(9)->Update();
 
-	
+	TCanvas *gDisplay = new TCanvas("gDisplay","2nd Display",2000,500);
+	gDisplay->Divide(2,1);
+	gDisplay->cd(1);
+	TH1F *hResolution = new TH1F("hResolution","Resolution vs. PE",NumofBins,0.0,300.0);
+	hResolution->GetXaxis()->SetTitle("PE");
+	hResolution->GetYaxis()->SetTitle("Resolution");
+	hResolution->GetYaxis()->SetRange(0.0,2.0);
+	hResolution->SetStats(0);
+	for (int i=0; i<NumofBins; i++)
+	{
+		float ResValue = (DCProfile->GetBinError(i+1))/(DCProfile->GetBinContent(i+1));
+		if (ResValue > 0)
+			hResolution->SetBinContent(i+1, ResValue);
+	}
+	hResolution->Draw();
+
+	TF1 *fa1 = new TF1("fa1","1/sqrt(x)",0.1,300);
+	fa1->Draw("same");
+	gDisplay->cd(1)->Modified();
+	gDisplay->cd(1)->Update();
+
+
 	TRandom3 rand;
 	int FirstPixelID, FiredPixelID;
 	int DCThreshold = 510;
 	double ChargeThreshold = 0.0;
 
+	gDisplay->cd(2);
+	TH1F *hEfficiency = new TH1F("hEfficiency","Reconstruction Efficiency",2*NumofBins,1,1001);
+	TH1F *hTriggered = new TH1F("hTriggered","Triggered Efficiency",2*NumofBins,1,1001);
+	hEfficiency->GetXaxis()->SetTitle("Total Shower Photoelectron Signal");
+	hEfficiency->GetYaxis()->SetTitle("Reconstruction Efficiency");
+	hEfficiency->SetStats(0);
+	hEfficiency->SetLineWidth(2);
+	hEfficiency->Sumw2();
+
+	int Triggeredevents = 0;
+	int ReconstructedEvents = 0;
+	
+	for(int n=0;n<tSimulatedEvents->GetEntries();n++)
+	{
+		FiredPixelID = -1;
+		tSimulatedEvents->GetEntry(n);
+		if(arrayTriggerBit)
+		{
+			T0->GetEntry(n);
+			Triggeredevents++;
+			hTriggered->Fill(energy);
+
+  			// This section calcualtes the total charge of pixels on the
+  			// two triggered music chips from bi-focal coincidence.
+  			FirstPixelID = vTriggerCluster->at(0)*8;
+  			for(int i=FirstPixelID; i<FirstPixelID+16; i++)
+  			{
+  				for(int j=SignalStart; j<SignalEnd; j++)
+  					{
+  						PixelCharge[i] += ((iFADCTraceInPixel[i])->at(j));
+  					}
+				PixelCharge[i] = PixelCharge[i] - (SignalWidth*Baseline[i]);
+			}
+
+			// This section scans through 8 pairs of pixels on the two triggered music
+			// chips and finds the possible candidates for the bi-focal pairs by applying
+			// a few selection rules. The rules are: 1) Peaks from two pixels happen in 50 ns
+			// of each other, and 2) Both peaks are above a certain threshold. At the end, it stores
+			// the pixel ID of both pixels from possible candidates in a vector.
+			vector<int> vPixCandidate;
+  			for(int i=FirstPixelID; i<FirstPixelID+8; i++)
+  			{
+  				int M1PeakTimeIndex =0;
+  				int M2PeakTimeIndex =0;
+  				int M1PeakValue = 0;
+  				int M2PeakValue = 0;
+  				for(int j=SignalStart; j<SignalEnd; j++)
+  				{
+  					if(iFADCTraceInPixel[i]->at(j) > M1PeakValue)
+  					{
+  						M1PeakTimeIndex = j;
+  						M1PeakValue = iFADCTraceInPixel[i]->at(j);
+  					}
+  					if(iFADCTraceInPixel[i+8]->at(j) > M2PeakValue)
+  					{
+  						M2PeakTimeIndex = j;
+  						M2PeakValue = iFADCTraceInPixel[i+8]->at(j);
+  					}
+  				}
+
+				if((abs(M2PeakTimeIndex - M1PeakTimeIndex) < CoincWindow) && (M1PeakValue > DCThreshold) && (M2PeakValue > DCThreshold))
+				{
+					vPixCandidate.push_back(i);
+					vPixCandidate.push_back(i+8);
+				}
+			}
+
+			// At this point, we have a list of pair candidates. We use the extarcted charge 
+			// of those pair pixels to find out which one is the main fired pixel. If fired pixel
+			// is in the 2nd music, we still record its pair in the first music as main fired pixel,
+			// because later, vFiredPixels expects the ID of the pixel in the 1st music to give us the neighbors.
+			int PixMaxCharge = 0;
+			for (int i=0; i<vPixCandidate.size(); i++)
+			{
+				if(PixelCharge[vPixCandidate[i]] > PixMaxCharge)
+				{
+					FiredPixelID = vPixCandidate[i];
+					PixMaxCharge = PixelCharge[vPixCandidate[i]];
+				}
+			}
+			if (FiredPixelID > FirstPixelID + 7)
+			{
+				FiredPixelID = FiredPixelID - 8;
+			}
+
+			if (FiredPixelID > -1)
+			{
+				hEfficiency->Fill(energy);
+				ReconstructedEvents++;
+			}
+			else
+			{
+				//cout<<"ID of skipped events: "<<n<<endl;
+			}
+
+	  		// Resetting pixel charge array for next event
+	  		for(int g=0; g<iNumPixels; g++)
+	  		{
+				PixelCharge[g] = 0;
+			}
+		}
+	}
+    
+    hEfficiency->Divide(hTriggered);
+    //for (int i=0; i<2*NumofBins; i++)
+    //	if(hEfficiency->GetBinContent(i) != 0)
+    //		hEfficiency->SetBinError(i,sqrt(hEfficiency->GetBinContent(i)));
+    hEfficiency->Draw();
+
+    cout<<"\nTotal Triggered events: "<<Triggeredevents<<endl;
+    cout<<"Total Reconstructed Events: "<<ReconstructedEvents<<endl;
+    float AlgorithmEfficiency = (ReconstructedEvents*100.0/Triggeredevents);
+    cout<<"Your Algorithm Efficiency is: "<<AlgorithmEfficiency<<"%"<<endl;
 
 	while(1)
 	{
@@ -589,19 +727,23 @@ void PlotSPB2Events(string fInputFileName)
 	  		cout<<"Event "<<n<<" is triggered"<<endl;
 	  		T0->GetEntry(n);
 	  		for(int g=0;g<iNumPixels;g++)
-		  		{
-  					int nx, ny;
-  					FindBin(g,&nx,&ny);
-  					h3Display->SetBinContent(nx,ny,iPEInPixel->at(g));
-  				}
+	  		{
+	  			int nx, ny;
+	  			FindBin(g,&nx,&ny);
+	  			h3Display->SetBinContent(nx,ny,iPEInPixel->at(g));
+	  		}
   			cDisplay->cd(1)->Modified();
   			cDisplay->cd(1)->Update();
 
   			h4Display->Reset();
   			cDisplay->cd(2);
 
+  			//cout<<"triggered music ID: "<<vTriggerCluster->at(0)<<endl;
+  			//cout<<"triggered music ID: "<<vTriggerCluster->at(1)<<endl;
+
   			// This section calcualtes the total charge of pixels on the
   			// two triggered music chips from bi-focal coincidence.
+  			FiredPixelID = -1;
   			FirstPixelID = vTriggerCluster->at(0)*8;
   			for(int i=FirstPixelID; i<FirstPixelID+16; i++)
   			{
@@ -668,24 +810,31 @@ void PlotSPB2Events(string fInputFileName)
 			// At this point, we have determined the ID of the main fired pixel.
 			// So, we use previously calculated neighbor IDs (stored in vFiredPixels)
 			// to fill up a histogram and plot the extracted signal.
-			for (int m=0; m<vFiredPixels[FiredPixelID].size(); m++)
+			if (FiredPixelID > -1)
 			{
-  				for(int j=SignalStart; j<SignalEnd; j++)
-  					{
-  						PixelCharge[m] += ((iFADCTraceInPixel[vFiredPixels[FiredPixelID][m]])->at(j));
-  					}
-				PixelCharge[m] = PixelCharge[m] - (SignalWidth*Baseline[vFiredPixels[FiredPixelID][m]]);
+				for (int m=0; m<vFiredPixels[FiredPixelID].size(); m++)
+				{
+	  				for(int j=SignalStart; j<SignalEnd; j++)
+	  					{
+	  						PixelCharge[m] += ((iFADCTraceInPixel[vFiredPixels[FiredPixelID][m]])->at(j));
+	  					}
+					PixelCharge[m] = PixelCharge[m] - (SignalWidth*Baseline[vFiredPixels[FiredPixelID][m]]);
 
-  				int nx, ny;
-  				FindBin(vFiredPixels[FiredPixelID][m], &nx, &ny);
-				if(PixelCharge[m] > ChargeThreshold)
-				{
-	  				h4Display->SetBinContent(nx,ny,PixelCharge[m]*MultiplyFactor3);
-				}
-				else
-				{
-					h4Display->SetBinContent(nx,ny,-1);
-				}
+	  				int nx, ny;
+	  				FindBin(vFiredPixels[FiredPixelID][m], &nx, &ny);
+					if(PixelCharge[m] > ChargeThreshold)
+					{
+		  				h4Display->SetBinContent(nx,ny,PixelCharge[m]*MultiplyFactor3);
+					}
+					else
+					{
+						h4Display->SetBinContent(nx,ny,-1);
+					}
+				}				
+			}
+			else
+			{
+				cout<<"This event is skipped because it did not meet bi-focal requirements."<<endl;
 			}
 
 	  		// Resetting pixel charge array for next event
