@@ -42,11 +42,12 @@ int MergeRootFiles (){
 		    //exit( -1 );
 		}
 		else{
-			ch_Tree->Add(fstring.c_str());
+			ch_Tree->Add((fstring+"/Events/tSimulatedEvents").c_str());
+			ch_Tree->Add((fstring+"/Events/T0").c_str());
 		}
 	}
 
-	ch_Tree->Merge("NSB_Traces_Merged.root")
+	ch_Tree->Merge("NSB_Traces_Merged.root");
 
 	return 0;
 
