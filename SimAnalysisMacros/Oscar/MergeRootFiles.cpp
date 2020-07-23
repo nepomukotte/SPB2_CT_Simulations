@@ -1,5 +1,5 @@
-#include <TChain>
-#include <TVectorD>
+#include <TChain.h>
+#include <TVectorD.h>
 
 void readDir(string dirname,vector<string> *names) {
 
@@ -23,32 +23,70 @@ void readDir(string dirname,vector<string> *names) {
 }
 
 int MergeRootFiles (){
-	string DataDir = "";
+	string DataDir = "/home/oscar/Documents/Research/NSB_Traces";
 	vector<string> * filenames = new vector<string>; 
 	readDir(DataDir,filenames);
+	
 
-	TChain *ch_Tree = new TChain("Events");
+	TFile *fl_merge = new TFile("NSB_Traces_Merged.root","RECREATE");
+	TChain *ch_Glob = 0;
+	TChain *ch_T0_Glob = 0;
+	TDirectory *dir_events = fl_merge->mkdir("Events","Events");
+	fl_merge->cd("Events");
 
-	for(int i = 0; i<filenames->size(); i++){
+	TList *lst_Files = new TList();
 
+	for (int i = 0; i<filenames->size(); i++){
 		stringstream fnamestream;
 		fnamestream<<DataDir<<"/"<<(*filenames)[i].c_str();
 		string fstring(fnamestream.str());
-		cout<<"opening file: "<<fstring<<endl;
-		f = new TFile(fstring.c_str(),"READ");
-		if( f->IsZombie() ){
-		   cout << "error opening root input file: " <<fnamestream.str().c_str()  << endl;
-		   cout << "...skipping" << endl;
-		    //exit( -1 );
-		}
-		else{
-			ch_Tree->Add((fstring+"/Events/tSimulatedEvents").c_str());
-			ch_Tree->Add((fstring+"/Events/T0").c_str());
-		}
+		cout<<fstring<<endl;
+		lst_Files->Add(TFile::Open(fstring.c_str()));
 	}
 
-	ch_Tree->Merge("NSB_Traces_Merged.root");
+	TString path( (char*)strstr( dir_events->GetPath(), ":" ) );
+	path.Remove( 0, 2 );
+	
 
+	cout<<"Working Path: "<<path<<endl;
+
+	TFile *first_source = (TFile*)lst_Files->First();
+	first_source->cd(path);
+	gDirectory->pwd();
+	TDirectory *current_sourcedir = gDirectory;
+	//TString patha( (char*)strstr( current_sourcedir->GetPath(), ":" ) );
+	//patha.Remove( 0, 2 );
+	//cout<<"Working Path: "<<patha<<endl;
+
+	ch_Glob = new TChain("Events/tSimulatedEvents");
+	ch_Glob->Add(first_source->GetName());
+
+	TFile *nextsource = (TFile*)lst_Files->After(first_source);
+	
+	while(nextsource){
+		nextsource->cd(path);
+		ch_Glob->Add(nextsource->GetName());
+		nextsource = (TFile*)lst_Files->After(nextsource);
+		cout<<"Hello"<<endl;
+	}
+
+	ch_T0_Glob = new TChain("Events/T0");
+	ch_T0_Glob->Add(first_source->GetName());
+
+	nextsource = (TFile*)lst_Files->After(first_source);
+	
+	while(nextsource){
+		nextsource->cd(path);
+		ch_Glob->Add(nextsource->GetName());
+		nextsource = (TFile*)lst_Files->After(nextsource);
+		cout<<"Hello"<<endl;
+	}
+
+	dir_events->cd();
+	dir_events->GetFile();
+	ch_Glob->Merge(dir_events->GetFile(),0,"keep");
+	ch_T0_Glob->Merge(dir_events->GetFile(),0,"keep");
+	dir_events->SaveSelf(true);
 	return 0;
 
 
