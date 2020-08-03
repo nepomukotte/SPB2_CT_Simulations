@@ -47,32 +47,40 @@ bool isNSBTrigger(vector<int> *iTrigMusic, vector<vector<int>*> iTrace){
 	bool isNoise;
 	int tolerance = 5;
 	//int tolerance = 2;
-	for(int i=FindFirstPix(iTrigMusic->at(0)); i<FindFirstPix(iTrigMusic->at(0))+8; i++){
-		max_temp = (int)*std::max_element(iTrace[i]->begin(),iTrace[i]->end());
-		if(max_temp>max_val){
-			max_val=max_temp;
-			max_val_Sample_Idx = std::distance(iTrace[i]->begin(),std::max_element(iTrace[i]->begin(),iTrace[i]->end()));
-			max_val_Pix_Idx = i;
-		}
-	}
 
-	bifoc_Pix_Idx = max_val_Pix_Idx + 8;
-	bifoc_Sample_Idx = std::distance(iTrace[bifoc_Pix_Idx]->begin(),std::max_element(iTrace[bifoc_Pix_Idx]->begin(),iTrace[bifoc_Pix_Idx]->end()));
-	bifoc_max_val = *std::max_element(iTrace[bifoc_Pix_Idx]->begin(),iTrace[bifoc_Pix_Idx]->end());
-	if(TMath::Abs(bifoc_Sample_Idx - max_val_Sample_Idx)<=1){
-		isNoise = false;
-		
-	}
-	else if(TMath::Abs(bifoc_max_val - max_val)<=tolerance){
-		isNoise = false;
-		
+	if (iTrigMusic->size()!=0){
+		for(int i=FindFirstPix(iTrigMusic->at(0)); i<FindFirstPix(iTrigMusic->at(0))+8; i++){
+			max_temp = (int)*std::max_element(iTrace[i]->begin(),iTrace[i]->end());
+			if(max_temp>max_val){
+				max_val=max_temp;
+				max_val_Sample_Idx = std::distance(iTrace[i]->begin(),std::max_element(iTrace[i]->begin(),iTrace[i]->end()));
+				max_val_Pix_Idx = i;
+			}
+		}
+	
+		bifoc_Pix_Idx = max_val_Pix_Idx + 8;
+		bifoc_Sample_Idx = std::distance(iTrace[bifoc_Pix_Idx]->begin(),std::max_element(iTrace[bifoc_Pix_Idx]->begin(),iTrace[bifoc_Pix_Idx]->end()));
+		bifoc_max_val = *std::max_element(iTrace[bifoc_Pix_Idx]->begin(),iTrace[bifoc_Pix_Idx]->end());
+		if(TMath::Abs(bifoc_Sample_Idx - max_val_Sample_Idx)<=1){
+			isNoise = false;
+			
+		}
+		else if(TMath::Abs(bifoc_max_val - max_val)<=tolerance){
+			isNoise = false;
+			
+		}
+		else{
+			isNoise = true;
+		}
+		cout<<bifoc_Sample_Idx<<" "<<max_val_Sample_Idx<<endl;
+		cout<<bifoc_max_val<<" "<<max_val<<endl;
+		//cout<<iTrigMusic->at(0)<<" "<<iTrigMusic->at(1)<<endl;
 	}
 	else{
 		isNoise = true;
 	}
-	cout<<bifoc_Sample_Idx<<" "<<max_val_Sample_Idx<<endl;
-	cout<<bifoc_max_val<<" "<<max_val<<endl;
-	cout<<iTrigMusic->at(0)<<" "<<iTrigMusic->at(1)<<endl;
+
+	
 	return isNoise;
 }
 
@@ -267,7 +275,7 @@ int SignalExtraction (){
 
 
 
-	TFile *file = new TFile( "/home/oscar/Documents/Research/Testing_Cluster3242.root", "READ" );
+	TFile *file = new TFile( "NSB_Traces_Merged_Fixed.root", "READ" );
 	TH2 *h_camera = new TH2F ("h_camera", "Camera", 32,-0.5,31.5,16,-0.5,15.5);
 	TH2 *h_camera_integ = new TH2F ("h_camera_integ", "Camera Charge", 32,-0.5,31.5,16,-0.5,15.5);
 	TH1 *h_base = new TH1F("h_base", "Pedestal", 4096,0,4096);
@@ -324,7 +332,8 @@ int SignalExtraction (){
 	//tEvent->GetEntry(9574);
 
 	bool isTrace = false;
-	for (int k = 0; k<nEvents; k++){
+	cout<<"N Events: "<<tSimulatedEvents->GetEntries()<<endl;
+	for (int k = 0; k<tSimulatedEvents->GetEntries(); k++){
 		tSimulatedEvents->GetEntry(k);
 		tEvent->GetEntry(k);
 		if(isTriggered){
@@ -390,9 +399,10 @@ int SignalExtraction (){
 					}
 					//cout<<"Signal is in Pixel: "<<iPixSignalID<<endl;
 					iPixSignal=0;
-					cout<<"Max Signal Pixels: "<< iPixSignalID[0]<< " "<<iPixSignalID[1]<<endl;
+					
 
 				}
+				cout<<"Max Signal Pixels: "<< iPixSignalID[0]<< " "<<iPixSignalID[1]<<endl;
 				isAbove = isAboveThreshold(max_val,thresh);
 				if(isAbove){
 					h_total_events_acc->Fill(totalPe);
@@ -415,7 +425,7 @@ int SignalExtraction (){
 		}
 	}
 
-	for(int i=1; i<p_dc->GetNbinsX();i++){
+	/*for(int i=1; i<p_dc->GetNbinsX();i++){
 		cout<<p_dc->GetBinError(i+1)/p_dc->GetBinContent(i+1)<<endl;
 		h_resolution->SetBinContent(i+1,p_dc->GetBinError(i+1)/p_dc->GetBinContent(i+1));
 	}
@@ -476,7 +486,7 @@ int SignalExtraction (){
 	h_rms_dist->SetLineColor(kBlack);
 	h_rms_dist->GetXaxis()->SetTitle("RMS");
 	h_rms_dist->GetYaxis()->SetTitle("Frequency");
-	h_rms_dist->GetXaxis()->SetRangeUser(0,10);	*/
+	h_rms_dist->GetXaxis()->SetRangeUser(0,10);	
 
 	TCanvas *c_pe_chg = new TCanvas("c_pe_chg","Canvas Pe Charge",800,500);
 	h_pe_adc->GetXaxis()->SetRangeUser(0,400);
@@ -511,11 +521,11 @@ int SignalExtraction (){
 	TCanvas *c_dcProfile = new TCanvas("c_dcProfile", "DC Profile",800,500);
 	p_dc->Draw("PE");
 	p_dc->GetXaxis()->SetTitle("Photoelectrons");
-	p_dc->GetYaxis()->SetTitle("Charge");
+	p_dc->GetYaxis()->SetTitle("Charge");*/
 
 	cout<<"NSB Events: "<<nNoise<<"\nSignal Events: "<<nSignal<<endl;
 	cout<<"Threshold Events: "<<nBelow<<endl;
-	cout<<"Dscarded Events \%: "<< (double) 100.0*(nNoise+nBelow)/(double)(nNoise+nSignal)<<endl; 
+	cout<<"Dscarded Events \%: "<< (double) 100.0*(nNoise+nBelow)/(double)(nNoise+nBelow+nSignal)<<endl; 
 	/*TCanvas *c_trace = new TCanvas("c_trace","Trace",800,500);
 	h_trace->Draw("HIST");
 	h_trace->GetXaxis()->SetTitle("Sample [10 ns]");
