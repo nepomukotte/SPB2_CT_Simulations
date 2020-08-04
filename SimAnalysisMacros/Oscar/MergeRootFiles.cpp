@@ -33,8 +33,7 @@ int MergeRootFiles (){
 	TChain *ch_T0_Glob = 0;
 	TDirectory *dir_events = fl_merge->mkdir("Events","Events");
 	//fl_merge->cd("Events");
-	TTree *t_temp_tSim;
-	TTree *t_temp_T0;
+	
 
 	int iNumPixels = 512;
 
@@ -134,6 +133,8 @@ int MergeRootFiles (){
 
 	
 	TFile *source = (TFile*)lst_Files->First();
+	TTree *t_temp_tSim;
+	TTree *t_temp_T0;
 	while(source){
 		t_temp_tSim = (TTree*)source->Get("Events/tSimulatedEvents");
 		t_temp_T0 = (TTree*)source->Get("Events/T0");
@@ -195,6 +196,8 @@ int MergeRootFiles (){
 			t_merg_T0->Fill();
 		}
 
+		t_temp_T0->Delete();
+		t_temp_tSim->Delete();
 		source = (TFile*)lst_Files->After(source);
 	}
 

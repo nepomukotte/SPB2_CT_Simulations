@@ -48,7 +48,7 @@ bool isNSBTrigger(vector<int> *iTrigMusic, vector<vector<int>*> iTrace){
 	int tolerance = 5;
 	//int tolerance = 2;
 
-	if (iTrigMusic->size()!=0){
+	if (1){
 		for(int i=FindFirstPix(iTrigMusic->at(0)); i<FindFirstPix(iTrigMusic->at(0))+8; i++){
 			max_temp = (int)*std::max_element(iTrace[i]->begin(),iTrace[i]->end());
 			if(max_temp>max_val){
@@ -76,9 +76,9 @@ bool isNSBTrigger(vector<int> *iTrigMusic, vector<vector<int>*> iTrace){
 		cout<<bifoc_max_val<<" "<<max_val<<endl;
 		//cout<<iTrigMusic->at(0)<<" "<<iTrigMusic->at(1)<<endl;
 	}
-	else{
+	/*else{
 		isNoise = true;
-	}
+	}*/
 
 	
 	return isNoise;
