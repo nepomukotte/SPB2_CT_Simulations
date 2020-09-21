@@ -17,8 +17,12 @@ void PlotBaseline();
 void PlotBaselineMeanRMS();
 void PlotDCPE();
 void PlotResolution();
-void CalcEfficiency();
+void CalcEfficiency(int threshold);
+void PlotEfficiencyPE();
 void PlotSingleEvent();
+
+float heffPE[8][20];
+float SoftwarePE[20] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
 
 // These are trees and parameters loaded from event file
 TTree *tSimulatedEvents;
@@ -37,7 +41,8 @@ const int iNumPixels = 512;
 const int SignalStart = 4;
 const int SignalEnd = 10;
 const int SignalWidth = SignalEnd - SignalStart;
-const int CoincWindow = 5;
+const int CoincWindow = 2;
+int PEThreshold = 0;
 float DCPEFactor = 0;
 double Baseline[iNumPixels];
 double PixelCharge[iNumPixels];
@@ -46,28 +51,63 @@ vector<vector<int> > vFiredPixels;
 vector<vector<double> > BaselineDist;
 TProfile* DCProfile;
 
+/*	// This is the calculated baseline for all pixels from NSB triggered events
+double Baseline[iNumPixels] = { 499.502, 499.537, 499.435, 499.475, 499.525, 499.475, 499.506, 499.526, 499.564, 499.531, 499.512, 499.522, 499.534, 499.516, 499.538, 499.544, 499.515, 499.468, 499.483, 499.494,
+								499.512, 499.566, 499.521, 499.494, 499.496, 499.481, 499.574, 499.488, 499.497, 499.528, 499.502, 499.5, 499.526, 499.464, 499.584, 499.527, 499.526, 499.524, 499.552, 499.529,
+								499.497, 499.542, 499.546, 499.496, 499.566, 499.486, 499.534, 499.517, 499.525, 499.444, 499.524, 499.497, 499.511, 499.565, 499.555, 499.472, 499.531, 499.492, 499.494, 499.552,
+								499.554, 499.506, 499.56, 499.481, 499.527, 499.488, 499.526, 499.529, 499.513, 499.469, 499.563, 499.522, 499.52, 499.548, 499.52, 499.477, 499.558, 499.502, 499.491, 499.513,
+								499.481, 499.528, 499.556, 499.513, 499.465, 499.456, 499.551, 499.547, 499.524, 499.523, 499.541, 499.538, 499.472, 499.522, 499.513, 499.536, 499.471, 499.515, 499.575, 499.543,
+								499.569, 499.498, 499.552, 499.545, 499.503, 499.557, 499.486, 499.48, 499.527, 499.543, 499.5, 499.499, 499.539, 499.525, 499.527, 499.511, 499.488, 499.527, 499.502, 499.501,
+								499.518, 499.461, 499.533, 499.532, 499.484, 499.5, 499.565, 499.535, 499.482, 499.53, 499.492, 499.503, 499.549, 499.519, 499.467, 499.497, 499.469, 499.541, 499.545, 499.493,
+								499.475, 499.516, 499.523, 499.573, 499.492, 499.519, 499.512, 499.517, 499.481, 499.534, 499.535, 499.539, 499.454, 499.495, 499.56, 499.459, 499.482, 499.492, 499.548, 499.484,
+								499.595, 499.485, 499.537, 499.558, 499.509, 499.488, 499.546, 499.519, 499.543, 499.508, 499.575, 499.462, 499.526, 499.548, 499.587, 499.53, 499.462, 499.531, 499.473, 499.523,
+								499.518, 499.5, 499.481, 499.508, 499.507, 499.509, 499.446, 499.509, 499.502, 499.469, 499.539, 499.523, 499.522, 499.483, 499.534, 499.537, 499.487, 499.508, 499.553, 499.54,
+								499.52, 499.492, 499.552, 499.506, 499.514, 499.492, 499.552, 499.515, 499.525, 499.518, 499.507, 499.464, 499.534, 499.501, 499.496, 499.464, 499.551, 499.507, 499.532, 499.496,
+								499.555, 499.537, 499.527, 499.51, 499.579, 499.506, 499.49, 499.523, 499.503, 499.557, 499.511, 499.559, 499.542, 499.464, 499.473, 499.491, 499.545, 499.557, 499.52, 499.517,
+								499.526, 499.541, 499.5, 499.501, 499.49, 499.523, 499.564, 499.533, 499.495, 499.412, 499.522, 499.509, 499.505, 499.522, 499.476, 499.487, 499.468, 499.519, 499.491, 499.511,
+								499.567, 499.51, 499.482, 499.536, 499.543, 499.531, 499.5, 499.568, 499.529, 499.521, 499.571, 499.494, 499.55, 499.537, 499.517, 499.516, 499.516, 499.502, 499.496, 499.509,
+								499.489, 499.525, 499.526, 499.555, 499.516, 499.467, 499.487, 499.512, 499.469, 499.526, 499.495, 499.566, 499.489, 499.495, 499.511, 499.536, 499.473, 499.527, 499.454, 499.519,
+								499.522, 499.517, 499.522, 499.553, 499.507, 499.549, 499.528, 499.542, 499.488, 499.557, 499.501, 499.504, 499.566, 499.539, 499.513, 499.541, 499.497, 499.525, 499.546, 499.532,
+								499.462, 499.506, 499.511, 499.483, 499.497, 499.497, 499.504, 499.536, 499.484, 499.493, 499.519, 499.565, 499.531, 499.525, 499.491, 499.497, 499.534, 499.525, 499.463, 499.55,
+								499.493, 499.491, 499.515, 499.524, 499.511, 499.498, 499.521, 499.567, 499.537, 499.572, 499.515, 499.519, 499.461, 499.528, 499.547, 499.464, 499.543, 499.559, 499.527, 499.509,
+								499.572, 499.455, 499.505, 499.548, 499.559, 499.552, 499.502, 499.531, 499.537, 499.486, 499.506, 499.539, 499.524, 499.566, 499.563, 499.506, 499.49, 499.503, 499.459, 499.477,
+								499.511, 499.533, 499.463, 499.524, 499.505, 499.523, 499.538, 499.55, 499.488, 499.537, 499.509, 499.5, 499.559, 499.533, 499.517, 499.514, 499.513, 499.523, 499.465, 499.6,
+								499.509, 499.617, 499.542, 499.528, 499.576, 499.56, 499.532, 499.527, 499.512, 499.533, 499.471, 499.501, 499.513, 499.498, 499.52, 499.556, 499.478, 499.502, 499.506, 499.485,
+								499.585, 499.569, 499.542, 499.563, 499.516, 499.529, 499.502, 499.538, 499.513, 499.543, 499.542, 499.547, 499.54, 499.507, 499.5, 499.481, 499.553, 499.467, 499.547, 499.559,
+								499.514, 499.515, 499.524, 499.528, 499.506, 499.488, 499.535, 499.49, 499.548, 499.486, 499.509, 499.501, 499.493, 499.523, 499.524, 499.545, 499.529, 499.5, 499.446, 499.535,
+								499.564, 499.536, 499.481, 499.544, 499.491, 499.544, 499.515, 499.426, 499.544, 499.496, 499.521, 499.52, 499.537, 499.481, 499.51, 499.557, 499.535, 499.547, 499.543, 499.528,
+								499.495, 499.506, 499.532, 499.521, 499.508, 499.47, 499.533, 499.49, 499.551, 499.522, 499.495, 499.532, 499.497, 499.496, 499.524, 499.506, 499.529, 499.523, 499.504, 499.508,
+								499.5, 499.575, 499.503, 499.504, 499.458, 499.469, 499.482, 499.5, 499.516, 499.512, 499.531, 499.556};
+*/
+
 // Histograms and Display parameters
 int iLastPix = -1;
 TLatex *text = 0;
 TCanvas *cDisplay = 0;
+TCanvas *eDisplay = 0;
 TCanvas *gDisplay = 0;
+TCanvas *iDisplay = 0;
 TH1F *hPixelTrace =0;
 TH1F *hBaseDist =0;
-TH1F *hBaseTemp =0;
-TH1F *hBaseMean =0;
-TH1F *hBaseRMS =0;
 
 
 int main(){
 
-	cDisplay = new TCanvas("cDisplay","1st Display",2000,1000);
-	cDisplay->Divide(3,3);
+	cDisplay = new TCanvas("cDisplay","Baseline",4000,2000);
+	cDisplay->Divide(2,2);
 
-	gDisplay = new TCanvas("gDisplay","2nd Display",2000,500);
-	gDisplay->Divide(2,1);
+	eDisplay = new TCanvas("eDisplay","Signal",4000,2000);
+	eDisplay->Divide(2,2);
+
+	gDisplay = new TCanvas("gDisplay","Resolution",4000,2000);
+	gDisplay->Divide(2,2);
+
+	iDisplay = new TCanvas("iDisplay","Efficiency",4000,2000);
+	iDisplay->Divide(2,2);
 
 	string FileName = "/home/mahdi/Programs/SPB2/SPB2_CT_Simulations/data/test_50.root";
 	//string FileName = "/storage/hive/project/phy-otte/shared/Merged_SPB2_CARE_NSB_Sims/NSB_Traces_Merged_Manual.root";
+	//string FileName = "/mnt/hgfs/Shared Folder/NSB_Traces_Merged_Manual.root";
 
 	LoadSPB2Events(FileName);
 
@@ -77,8 +117,8 @@ int main(){
 
 	PlotDCPE();
 	PlotResolution();
-	CalcEfficiency();
 
+	CalcEfficiency(10);
 	FindNeighborPixels();
 	PlotSingleEvent();
 }
@@ -97,33 +137,33 @@ Bool_t HandleInput()
 
 		if (input=="\n")
 			return kTRUE;
-    }
+	}
 
-    return kFALSE;
+	return kFALSE;
 }
 
 void LoadSPB2Events(string NameofFile)
 {
 	TFile *fO = new TFile(NameofFile.c_str(), "READ");
 
-    tSimulatedEvents = (TTree*)fO->Get("Events/tSimulatedEvents");
-    tSimulatedEvents->SetBranchAddress("energy",&energy);
-    tSimulatedEvents->SetBranchAddress("xcore",&xcore);
-    tSimulatedEvents->SetBranchAddress("ycore",&ycore);
-    tSimulatedEvents->SetBranchAddress("arrayTriggerBit",&arrayTriggerBit);
-    tSimulatedEvents->SetBranchAddress("eventNumber",&eventNumber);
+	tSimulatedEvents = (TTree*)fO->Get("Events/tSimulatedEvents");
+	tSimulatedEvents->SetBranchAddress("energy",&energy);
+	tSimulatedEvents->SetBranchAddress("xcore",&xcore);
+	tSimulatedEvents->SetBranchAddress("ycore",&ycore);
+	tSimulatedEvents->SetBranchAddress("arrayTriggerBit",&arrayTriggerBit);
+	tSimulatedEvents->SetBranchAddress("eventNumber",&eventNumber);
 
-    iFADCTraceInPixel.assign(iNumPixels,0);
+	iFADCTraceInPixel.assign(iNumPixels,0);
 
-    T0 = (TTree*)fO->Get("Events/T0");
-    T0->SetBranchAddress("vGroupsInTriggerCluster",&vTriggerCluster);
-    T0->SetBranchAddress("vPEInPixel", &iPEInPixel);
-    TString name;
-    for(int g=0;g<iNumPixels;g++)
-    {
-    	name.Form("vFADCTraces%i",g);
-    	T0->SetBranchAddress(name,&(iFADCTraceInPixel[g]));
-    }
+	T0 = (TTree*)fO->Get("Events/T0");
+	T0->SetBranchAddress("vGroupsInTriggerCluster",&vTriggerCluster);
+	T0->SetBranchAddress("vPEInPixel", &iPEInPixel);
+	TString name;
+	for(int g=0;g<iNumPixels;g++)
+	{
+		name.Form("vFADCTraces%i",g);
+		T0->SetBranchAddress(name,&(iFADCTraceInPixel[g]));
+	}
 }
 
 void FindBin(int iPix,int *nx, int *ny)
@@ -262,7 +302,8 @@ void PlotBaseline()
 		Baseline[i] = Baseline[i]*TotalMFactor;
 	}
 
-	cDisplay->cd(4);
+
+	cDisplay->cd(1);
 	gPad->AddExec("ex","BaselinePixelClicked()");
 	TH2F *h1Display = new TH2F("h1Display","Average Baseline",32,-0.5,31.5,16,-0.5,15.5);
 	h1Display->SetStats(0);
@@ -277,30 +318,24 @@ void PlotBaseline()
 		h1Display->SetBinContent(nx,ny,Baseline[g]);
 	}
 
-	cDisplay->cd(4)->Modified();
-	cDisplay->cd(4)->Update();
+	cDisplay->cd(1)->Modified();
+	cDisplay->cd(1)->Update();
+	cout<<"Finished the baseline calculation"<<endl;
 }
 
 void PlotBaselineMeanRMS()
 {
-	if(hBaseTemp==0)
-		hBaseTemp = new TH1F("hBaseTemp","Temporary Histogram for Baseline",100,495.0,505.0);
+	TH1F *hBaseTemp = new TH1F("hBaseTemp","Temporary Histogram for Baseline",100,495.0,505.0);
 
-	if(hBaseMean==0)
-		hBaseMean = new TH1F("hBaseMean","Pixel Baseline Mean",50,499.0,500.0);
-		hBaseMean->SetStats(0);
-		hBaseMean->GetXaxis()->SetTitle("Mean");
-		hBaseMean->GetYaxis()->SetTitle("Mean Frequency");
+	TH1F *hBaseMean = new TH1F("hBaseMean","Pixel Baseline Mean",50,499.0,500.0);
+	hBaseMean->SetStats(0);
+	hBaseMean->GetXaxis()->SetTitle("Mean");
+	hBaseMean->GetYaxis()->SetTitle("Mean Frequency");
 
-	if(hBaseRMS==0)
-		hBaseRMS = new TH1F("hBaseRMS","Pixel Baseline RMS",50,1.0,1.5);
-		hBaseRMS->SetStats(0);
-		hBaseRMS->GetXaxis()->SetTitle("RMS");
-		hBaseRMS->GetYaxis()->SetTitle("RMS Frequency");
-
-	hBaseTemp->Reset();
-	hBaseMean->Reset();
-	hBaseRMS->Reset();
+	TH1F *hBaseRMS = new TH1F("hBaseRMS","Pixel Baseline RMS",50,1.0,1.5);
+	hBaseRMS->SetStats(0);
+	hBaseRMS->GetXaxis()->SetTitle("RMS");
+	hBaseRMS->GetYaxis()->SetTitle("RMS Frequency");
 
 	for (int i=0; i<iNumPixels; i++)
 	{
@@ -313,12 +348,12 @@ void PlotBaselineMeanRMS()
 		hBaseTemp->Reset();
 	}
 	
-	cDisplay->cd(5);
+	cDisplay->cd(2);
 	hBaseMean->Draw();
 	gPad->Modified();
 	gPad->Update();
 
-	cDisplay->cd(6);
+	cDisplay->cd(4);
 	hBaseRMS->Draw();
 	gPad->Modified();
 	gPad->Update();
@@ -341,7 +376,7 @@ void ShowBaseDist(int iPix)
 		hBaseDist->Fill(BaselineDist[s][iPix]);
 	}
 
-	cDisplay->cd(7);
+	cDisplay->cd(3);
 	hBaseDist->Draw();
 	gPad->Modified();
 	gPad->Update();
@@ -397,12 +432,11 @@ void PlotDCPE()
 	}
 
 	// This section fills up a 2D histogram with DC and PE and finds the ratio by fitting it to f(x) = x
-	cDisplay->cd(8);
+	gDisplay->cd(1);
 	TH2D *hScatDCPE = new TH2D("hScatDCPE","DC vs. PE Histogram",100,-20,300,100,-20,600);
-	hScatDCPE->Clear();
-	hScatDCPE->SetStats(0);
 	hScatDCPE->GetXaxis()->SetTitle("PE");
 	hScatDCPE->GetYaxis()->SetTitle("DC");
+	hScatDCPE->SetStats(0);
 	for (int i=0; i<PEValue.size(); i++)
 	{
 	  hScatDCPE->Fill(PEValue[i], DCValue[i]);
@@ -412,12 +446,12 @@ void PlotDCPE()
 	hScatDCPE->Fit(fDCPE);
 	hScatDCPE->Draw("SCAT");
 	DCPEFactor = (1.0/fDCPE->GetParameter(0));
-	cDisplay->cd(8)->Modified();
-	cDisplay->cd(8)->Update();
+	gDisplay->cd(1)->Modified();
+	gDisplay->cd(1)->Update();
 
 	// This section creates a TProfile to calculate the standard deviation of the mean of DC values.
 	int NumofBins = 50;
-	cDisplay->cd(9);
+	gDisplay->cd(2);
 	DCProfile = new TProfile("DCProfile","Profile of extracted digital counts",2*NumofBins,0.0,300.0);
 	DCProfile->GetXaxis()->SetTitle("PE");
 	DCProfile->GetYaxis()->SetTitle("DC");
@@ -428,14 +462,14 @@ void PlotDCPE()
 	}
 	DCProfile->SetErrorOption("s");
 	DCProfile->Draw();
-	cDisplay->cd(9)->Modified();
-	cDisplay->cd(9)->Update();
+	gDisplay->cd(2)->Modified();
+	gDisplay->cd(2)->Update();
 }
 
 void PlotResolution()
 {
 	int NumofBins = 100;
-	gDisplay->cd(1);
+	gDisplay->cd(3);
 	TH1F *hResolution = new TH1F("hResolution","Resolution vs. PE",NumofBins,0.0,300.0);
 	hResolution->GetXaxis()->SetTitle("PE");
 	hResolution->GetYaxis()->SetTitle("Resolution");
@@ -451,8 +485,8 @@ void PlotResolution()
 
 	TF1 *fa1 = new TF1("fa1","1/sqrt(x)",0.1,300);
 	fa1->Draw("same");
-	gDisplay->cd(1)->Modified();
-	gDisplay->cd(1)->Update();
+	gDisplay->cd(3)->Modified();
+	gDisplay->cd(3)->Update();
 }
 
 void ShowPixeltrace(int iPix)
@@ -474,7 +508,7 @@ void ShowPixeltrace(int iPix)
 		hPixelTrace->SetBinContent(s+1,(iFADCTraceInPixel[iPix])->at(s));
 	}
 
-	cDisplay->cd(3);
+	eDisplay->cd(3);
 	hPixelTrace->Draw();
 	gPad->Modified();
 	gPad->Update();
@@ -508,26 +542,37 @@ void PixelClicked()
 		ShowPixeltrace(pix);
 }
 
-void CalcEfficiency()
+void CalcEfficiency(int threshold)
 {
 	int NumofBins = 50;
-	int DCThreshold = 510;
 	int FirstPixelID = 0;
 	int FiredPixelID =0;
 	int ReconstructedEvents = 0;
-	double ChargeThreshold = 0;
 	float AlgorithmEfficiency =0;
 
-	gDisplay->cd(2);
+	PEThreshold = threshold;
+
 	TH1F *hEfficiency = new TH1F("hEfficiency","Reconstruction Efficiency",2*NumofBins,1,1001);
-	TH1F *hTriggered = (TH1F*)hEfficiency->Clone();
-	hTriggered->SetName("hTriggered");
 	hEfficiency->GetXaxis()->SetTitle("Total Shower Photoelectron Signal");
 	hEfficiency->GetYaxis()->SetTitle("Reconstruction Efficiency");
 	hEfficiency->SetStats(0);
 	hEfficiency->SetLineWidth(2);
-	hEfficiency->Sumw2();
+	hEfficiency->Sumw2();		
+
+	TH1F *hTriggered = new TH1F("hTriggered","Trigger Efficiency",2*NumofBins,1,1001);
+	hTriggered->GetXaxis()->SetTitle("Total Shower Photoelectron Signal");
+	hTriggered->GetYaxis()->SetTitle("Trigger Efficiency");
+	hTriggered->SetStats(0);
+	hTriggered->SetLineWidth(2);
+	hTriggered->Sumw2();		
 	
+	TH1F *hTotalEfficiency = new TH1F("hTotalEfficiency","Overall Efficiency",2*NumofBins,1,1001);
+	hTotalEfficiency->GetXaxis()->SetTitle("Total Shower Photoelectron Signal");
+	hTotalEfficiency->GetYaxis()->SetTitle("Overall Efficiency");
+	hTotalEfficiency->SetStats(0);
+	hTotalEfficiency->SetLineWidth(2);
+	hTotalEfficiency->Sumw2();		
+
 	for(int n=0;n<TriggeredEventsID.size();n++)
 	{
 		FiredPixelID = -1;
@@ -552,30 +597,29 @@ void CalcEfficiency()
 		{
 			int M1PeakTimeIndex =0;
 			int M2PeakTimeIndex =0;
-			int M1PeakValue = 0;
-			int M2PeakValue = 0;
+			float M1PeakValue = 0;
+			float M2PeakValue = 0;
 			for(int j=SignalStart; j<SignalEnd; j++)
 			{
-				if(iFADCTraceInPixel[i]->at(j) > M1PeakValue)
+				if((iFADCTraceInPixel[i]->at(j) - Baseline[i]) > M1PeakValue)
 				{
 					M1PeakTimeIndex = j;
-					M1PeakValue = iFADCTraceInPixel[i]->at(j);					
+					M1PeakValue = iFADCTraceInPixel[i]->at(j) - Baseline[i];
 				}
 
-				if(iFADCTraceInPixel[i+8]->at(j) > M2PeakValue)
+				if((iFADCTraceInPixel[i+8]->at(j) - Baseline[i+8]) > M2PeakValue)
 				{
 					M2PeakTimeIndex = j;
-					M2PeakValue = iFADCTraceInPixel[i+8]->at(j);					
+					M2PeakValue = iFADCTraceInPixel[i+8]->at(j) - Baseline[i+8];
 				}
 			}
 
-			//if(abs(M2PeakTimeIndex - M1PeakTimeIndex) < CoincWindow)
-			if((abs(M2PeakTimeIndex - M1PeakTimeIndex) < CoincWindow) && (M1PeakValue > DCThreshold) && (M2PeakValue > DCThreshold))
+			if((abs(M2PeakTimeIndex - M1PeakTimeIndex) < CoincWindow) && (M1PeakValue > PEThreshold) && (M2PeakValue > PEThreshold))
 			{
 				vPixCandidate.push_back(i);
 				vPixCandidate.push_back(i+8);
 				vPeakTimeIndex.push_back(M1PeakTimeIndex);
-				vPeakTimeIndex.push_back(M2PeakTimeIndex);				
+				vPeakTimeIndex.push_back(M2PeakTimeIndex);
 			}
 		}
 
@@ -589,15 +633,19 @@ void CalcEfficiency()
 				{
 					PeakTimeIndex = vPeakTimeIndex[i];
 					FiredPixelID = vPixCandidate[i];
-					PixMaxCharge = PixelCharge[vPixCandidate[i]];					
+					PixMaxCharge = PixelCharge[vPixCandidate[i]];
 				}
 			}
 
 			if (FiredPixelID > -1)
 			{
 				hEfficiency->Fill(energy);
-				ReconstructedEvents++;				
+				ReconstructedEvents++;
 			}
+		}
+		else
+		{
+			//cout<<"Did not meet bi-focal requirements: "<<TriggeredEventsID[n]<<endl;
 		}
 
 		for(int g=0; g<iNumPixels; g++)
@@ -606,25 +654,96 @@ void CalcEfficiency()
 		}
 	}
 
+	iDisplay->cd(1);
 	hEfficiency->Divide(hTriggered);
 	hEfficiency->Draw();
+
+	iDisplay->cd(2);
+	hTriggered->Scale(1e-3*(4*105*55)/(199.8*99.8));
+	hTriggered->Draw();
+
+	iDisplay->cd(3);
+	hTotalEfficiency->Multiply(hEfficiency,hTriggered);
+	hTotalEfficiency->Draw();
 
 	cout<<"Total Reconstructed Events: "<<ReconstructedEvents<<endl;
 	AlgorithmEfficiency = (ReconstructedEvents*100.0/TriggeredEventsID.size());
 	cout<<"Your Algorithm Efficiency is: "<<AlgorithmEfficiency<<"%"<<endl;
+	
+	heffPE[0][threshold-1] = hEfficiency->GetBinContent(3)*100;
+	heffPE[1][threshold-1] = hEfficiency->GetBinContent(4)*100;
+	heffPE[2][threshold-1] = hEfficiency->GetBinContent(7)*100;
+	heffPE[3][threshold-1] = hEfficiency->GetBinContent(10)*100;
+	heffPE[4][threshold-1] = hEfficiency->GetBinContent(16)*100;
+	heffPE[5][threshold-1] = hEfficiency->GetBinContent(26)*100;
+	heffPE[6][threshold-1] = hEfficiency->GetBinContent(40)*100;
+	heffPE[7][threshold-1] = hEfficiency->GetBinContent(63)*100;
 
+	//hEfficiency->Reset();
+	//hTriggered->Reset();
+}
+
+void PlotEfficiencyPE()
+{
+	for (int i=1; i<21; i++)
+	{
+		CalcEfficiency(i);
+	}
+
+	iDisplay->cd(4);
+	TGraph *RecEfficiency1 = new TGraph(20, SoftwarePE, heffPE[0]);
+	TGraph *RecEfficiency2 = new TGraph(20, SoftwarePE, heffPE[1]);
+	TGraph *RecEfficiency3 = new TGraph(20, SoftwarePE, heffPE[2]);
+	TGraph *RecEfficiency4 = new TGraph(20, SoftwarePE, heffPE[3]);
+	TGraph *RecEfficiency5 = new TGraph(20, SoftwarePE, heffPE[4]);
+	TGraph *RecEfficiency6 = new TGraph(20, SoftwarePE, heffPE[5]);
+	TGraph *RecEfficiency7 = new TGraph(20, SoftwarePE, heffPE[6]);
+	TGraph *RecEfficiency8 = new TGraph(20, SoftwarePE, heffPE[7]);
+
+	RecEfficiency1->SetMarkerStyle(20);
+	RecEfficiency2->SetMarkerStyle(21);
+	RecEfficiency3->SetMarkerStyle(22);
+	RecEfficiency4->SetMarkerStyle(23);
+	RecEfficiency5->SetMarkerStyle(29);
+	RecEfficiency6->SetMarkerStyle(33);
+	RecEfficiency7->SetMarkerStyle(43);
+	RecEfficiency8->SetMarkerStyle(47);
+	
+	RecEfficiency1->SetLineColor(1);
+	RecEfficiency2->SetLineColor(2);
+	RecEfficiency3->SetLineColor(3);
+	RecEfficiency4->SetLineColor(4);
+	RecEfficiency5->SetLineColor(5);
+	RecEfficiency6->SetLineColor(6);
+	RecEfficiency7->SetLineColor(7);
+	RecEfficiency8->SetLineColor(9);
+
+	TMultiGraph  *RecEfficiency  = new TMultiGraph();
+	RecEfficiency->Add(RecEfficiency1);
+	RecEfficiency->Add(RecEfficiency2);
+	RecEfficiency->Add(RecEfficiency3);
+	RecEfficiency->Add(RecEfficiency4);
+	RecEfficiency->Add(RecEfficiency5);
+	RecEfficiency->Add(RecEfficiency6);
+	RecEfficiency->Add(RecEfficiency7);
+	RecEfficiency->Add(RecEfficiency8);
+	RecEfficiency->Draw("ALP");
+	RecEfficiency->GetXaxis()->SetTitle("Software PE threshold");
+	RecEfficiency->GetYaxis()->SetTitle("Reconstruction Efficiency (%)");
+	gPad->Modified();
+	gPad->Update();
 }
 
 void PlotSingleEvent()
 {
-	cDisplay->cd(1);
+	eDisplay->cd(1);
 	gPad->AddExec("ex","PixelClicked()");
 	TH2F *h3Display = new TH2F("h3Display","Charge",32,-0.5,31.5,16,-0.5,15.5);
 	h3Display->SetStats(0);
 	h3Display->Draw("colz");
 	DrawMUSICBoundaries();
 
-	cDisplay->cd(2);
+	eDisplay->cd(2);
 	TH2F *h4Display = new TH2F("h4Display","Signal after extraction",32,-0.5,31.5,16,-0.5,15.5);
 	h4Display->SetStats(0);
 	h4Display->Draw("colz");
@@ -632,19 +751,18 @@ void PlotSingleEvent()
 
 	TRandom3 rand;
 	int FirstPixelID, FiredPixelID;
-	int DCThreshold = 510;
 	double ChargeThreshold = 0.0;
 
 	while(1)
 	{
 		int n = rand.Integer(TriggeredEventsID.size());
-  		tSimulatedEvents->GetEntry(TriggeredEventsID[n]);
-  		T0->GetEntry(TriggeredEventsID[n]);
-  		cout<<"Event "<<TriggeredEventsID[n]<<" is triggered"<<endl;
+		tSimulatedEvents->GetEntry(TriggeredEventsID[n]);
+		T0->GetEntry(TriggeredEventsID[n]);
+		cout<<"Event "<<TriggeredEventsID[n]<<" is triggered"<<endl;
 
 		// This section fills up and plots a 2D histogram
 		// using the simulated number of PEs that hit each pixel.
-  		cDisplay->cd(1);
+  		eDisplay->cd(1);
   		h3Display->Clear();
   		for(int g=0;g<iNumPixels;g++)
   		{
@@ -652,11 +770,14 @@ void PlotSingleEvent()
   			FindBin(g,&nx,&ny);
   			h3Display->SetBinContent(nx,ny,iPEInPixel->at(g));
   		}
-		cDisplay->cd(1)->Modified();
-		cDisplay->cd(1)->Update();
+		eDisplay->cd(1)->Modified();
+		eDisplay->cd(1)->Update();
 
+		cout<<"First triggered Music is: "<<vTriggerCluster->at(0)<<endl;
+		cout<<"Second triggered Music is: "<<vTriggerCluster->at(1)<<endl;
+
+		eDisplay->cd(2);
 		h4Display->Reset();
-		cDisplay->cd(2);
 
 		// This section calcualtes the total charge of pixels on the
 		// two triggered music chips from bi-focal coincidence.
@@ -677,53 +798,70 @@ void PlotSingleEvent()
 		// of each other, and 2) Both peaks are above a certain threshold. At the end, it stores
 		// the pixel ID of both pixels from possible candidates in a vector.
 		vector<int> vPixCandidate;
+		vector<int> vPeakTimeIndex;
 		for(int i=FirstPixelID; i<FirstPixelID+8; i++)
 		{
 			int M1PeakTimeIndex =0;
 			int M2PeakTimeIndex =0;
-			int M1PeakValue = 0;
-			int M2PeakValue = 0;
+			float M1PeakValue = 0;
+			float M2PeakValue = 0;
 			for(int j=SignalStart; j<SignalEnd; j++)
 			{
-				if(iFADCTraceInPixel[i]->at(j) > M1PeakValue)
+				if((iFADCTraceInPixel[i]->at(j) - Baseline[i]) > M1PeakValue)
 				{
 					M1PeakTimeIndex = j;
-					M1PeakValue = iFADCTraceInPixel[i]->at(j);
+					M1PeakValue = iFADCTraceInPixel[i]->at(j) - Baseline[i];
 				}
-				if(iFADCTraceInPixel[i+8]->at(j) > M2PeakValue)
+
+				if((iFADCTraceInPixel[i+8]->at(j) - Baseline[i+8]) > M2PeakValue)
 				{
 					M2PeakTimeIndex = j;
-					M2PeakValue = iFADCTraceInPixel[i+8]->at(j);
+					M2PeakValue = iFADCTraceInPixel[i+8]->at(j) - Baseline[i+8];
 				}
 			}
 
-			//if(abs(M2PeakTimeIndex - M1PeakTimeIndex) < CoincWindow)
-			if((abs(M2PeakTimeIndex - M1PeakTimeIndex) < CoincWindow) && (M1PeakValue > DCThreshold) && (M2PeakValue > DCThreshold))
+			if((abs(M2PeakTimeIndex - M1PeakTimeIndex) < CoincWindow) && (M1PeakValue > PEThreshold) && (M2PeakValue > PEThreshold))
 			{
 				vPixCandidate.push_back(i);
 				vPixCandidate.push_back(i+8);
+				vPeakTimeIndex.push_back(M1PeakTimeIndex);
+				vPeakTimeIndex.push_back(M2PeakTimeIndex);
 			}
 		}
+
+		cout<<"Number of candidates: "<<vPixCandidate.size()<<endl;
 
 		// At this point, we have a list of pair candidates. We use the extarcted charge 
 		// of those pair pixels to find out which one is the main fired pixel. If fired pixel
 		// is in the 2nd music, we still record its pair in the first music as main fired pixel,
 		// because later, vFiredPixels expects the ID of the pixel in the 1st music to give us the neighbors.
 		int PixMaxCharge = 0;
-		for (int i=0; i<vPixCandidate.size(); i++)
+		int PeakTimeIndex = 0;
+
+		if(vPixCandidate.size() > 0)
 		{
-			if(PixelCharge[vPixCandidate[i]] > PixMaxCharge)
+			for (int i=0; i<vPixCandidate.size(); i++)
 			{
-				FiredPixelID = vPixCandidate[i];
-				PixMaxCharge = PixelCharge[vPixCandidate[i]];
+				cout<<"candidate number "<<i+1<<" is pixel#:"<<vPixCandidate[i]<<endl;
+				if(PixelCharge[vPixCandidate[i]] > PixMaxCharge)
+				{
+					PeakTimeIndex = vPeakTimeIndex[i];
+					FiredPixelID = vPixCandidate[i];
+					PixMaxCharge = PixelCharge[vPixCandidate[i]];
+				}
+			}
+			if (FiredPixelID > FirstPixelID + 7)
+			{
+				cout<<"Fired pixel with maximum charge is in the 2nd music chip."<<endl;
+				FiredPixelID = FiredPixelID - 8;
 			}
 		}
-		if (FiredPixelID > FirstPixelID + 7)
-		{
-			cout<<"Fired pixel with maximum charge is in the 2nd music chip."<<endl;
-			FiredPixelID = FiredPixelID - 8;
-		}
+		
 		cout<<"Chosing Pixel ID: "<<FiredPixelID<<" as Fired Pixel"<<endl;
+
+		cout<<"Peak time index: "<<PeakTimeIndex<<endl;
+
+		cout<<"Total charge of fired pixel: "<<PixMaxCharge<<endl;
 
 		// At this point, we have determined the ID of the main fired pixel.
 		// So, we use previously calculated neighbor IDs (stored in vFiredPixels)
@@ -762,8 +900,8 @@ void PlotSingleEvent()
 		}
 
 		h4Display->SetMinimum(0);
-		cDisplay->cd(2)->Modified();
-		cDisplay->cd(2)->Update();
+		eDisplay->cd(2)->Modified();
+		eDisplay->cd(2)->Update();
 
 		if(!HandleInput())
 			break;
