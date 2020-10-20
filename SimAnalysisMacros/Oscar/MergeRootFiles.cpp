@@ -23,12 +23,14 @@ void readDir(string dirname,vector<string> *names) {
 }
 
 int MergeRootFiles (){
-	string DataDir = "/home/oscar/Documents/Research/NSB_Traces";
+	string MainDir = "/storage/hive/project/phy-otte/shared/Merged_SPB2_CARE_NSB_Sims/NSB_Traces/F1Filter/";
+	string DataDir = MainDir+"Event_Traces";
 	vector<string> * filenames = new vector<string>; 
 	readDir(DataDir,filenames);
 	
+	string outFile =  MainDir+"Merged_NSB_Traces.root";	
 
-	TFile *fl_merge = new TFile("NSB_Traces_Merged_Manual.root","RECREATE");
+	TFile *fl_merge = new TFile(outFile.c_str(),"RECREATE");
 	TChain *ch_Glob = 0;
 	TChain *ch_T0_Glob = 0;
 	TDirectory *dir_events = fl_merge->mkdir("Events","Events");

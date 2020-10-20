@@ -1,7 +1,7 @@
 #include <TTree.h>
 
 int CheckTriggeredEvents(){
-	TFile *file = new TFile( "NSB_Traces_Merged_Fixed.root", "READ" );
+	TFile *file = new TFile( "/storage/hive/project/phy-otte/omatamala3/NSB_Traces/Trace_13072020/SomeTraces/Merged_NSB_Traces.root", "READ" );
 	TTree *tSimulatedEvents = (TTree*)file->Get( "Events/tSimulatedEvents" );
 	bool *isTriggered=0;
 	tSimulatedEvents->SetBranchAddress("arrayTriggerBit",&isTriggered);

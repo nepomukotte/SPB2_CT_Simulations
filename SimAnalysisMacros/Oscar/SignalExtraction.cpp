@@ -65,15 +65,15 @@ bool isNSBTrigger(vector<int> *iTrigMusic, vector<vector<int>*> iTrace){
 			isNoise = false;
 			
 		}
-		else if(TMath::Abs(bifoc_max_val - max_val)<=tolerance){
+		/*else if(TMath::Abs(bifoc_max_val - max_val)<=tolerance){
 			isNoise = false;
 			
-		}
+		}*/
 		else{
 			isNoise = true;
 		}
-		cout<<bifoc_Sample_Idx<<" "<<max_val_Sample_Idx<<endl;
-		cout<<bifoc_max_val<<" "<<max_val<<endl;
+//		cout<<bifoc_Sample_Idx<<" "<<max_val_Sample_Idx<<endl;
+//		cout<<bifoc_max_val<<" "<<max_val<<endl;
 		//cout<<iTrigMusic->at(0)<<" "<<iTrigMusic->at(1)<<endl;
 	}
 	/*else{
@@ -247,7 +247,7 @@ int SignalExtraction (){
 	int iPixSignal=0;
 	int iPixSignalID[2];
 	int maxSampleID[2];
-	int thresh = 14;
+	int thresh = 12;
 	double max_val[2];
 	float totalPe;
 
@@ -275,7 +275,7 @@ int SignalExtraction (){
 
 
 
-	TFile *file = new TFile( "NSB_Traces_Merged_Fixed.root", "READ" );
+	TFile *file = new TFile( "/storage/hive/project/phy-otte/shared/Merged_SPB2_CARE_NSB_Sims/Cherenkov/F1Filter/CherenkovTrace26986.root", "READ" );
 	TH2 *h_camera = new TH2F ("h_camera", "Camera", 32,-0.5,31.5,16,-0.5,15.5);
 	TH2 *h_camera_integ = new TH2F ("h_camera_integ", "Camera Charge", 32,-0.5,31.5,16,-0.5,15.5);
 	TH1 *h_base = new TH1F("h_base", "Pedestal", 4096,0,4096);
@@ -402,7 +402,7 @@ int SignalExtraction (){
 					
 
 				}
-				cout<<"Max Signal Pixels: "<< iPixSignalID[0]<< " "<<iPixSignalID[1]<<endl;
+		//		cout<<"Max Signal Pixels: "<< iPixSignalID[0]<< " "<<iPixSignalID[1]<<endl;
 				isAbove = isAboveThreshold(max_val,thresh);
 				if(isAbove){
 					h_total_events_acc->Fill(totalPe);
@@ -425,7 +425,7 @@ int SignalExtraction (){
 		}
 	}
 
-	/*for(int i=1; i<p_dc->GetNbinsX();i++){
+	for(int i=1; i<p_dc->GetNbinsX();i++){
 		cout<<p_dc->GetBinError(i+1)/p_dc->GetBinContent(i+1)<<endl;
 		h_resolution->SetBinContent(i+1,p_dc->GetBinError(i+1)/p_dc->GetBinContent(i+1));
 	}
@@ -472,7 +472,7 @@ int SignalExtraction (){
 	h_rms->SetStats(0);
 	h_rms->SetMarkerStyle(kFullCircle);*/
 
-	/*TCanvas *c_base = new TCanvas("c_base", "Canvas Baseline", 800,500);
+	TCanvas *c_base = new TCanvas("c_base", "Canvas Baseline", 800,500);
 	h_base->Draw("HIST");
 	h_base->SetStats(0);
 	h_base->GetXaxis()->SetTitle("DC");
@@ -521,7 +521,7 @@ int SignalExtraction (){
 	TCanvas *c_dcProfile = new TCanvas("c_dcProfile", "DC Profile",800,500);
 	p_dc->Draw("PE");
 	p_dc->GetXaxis()->SetTitle("Photoelectrons");
-	p_dc->GetYaxis()->SetTitle("Charge");*/
+	p_dc->GetYaxis()->SetTitle("Charge");
 
 	cout<<"NSB Events: "<<nNoise<<"\nSignal Events: "<<nSignal<<endl;
 	cout<<"Threshold Events: "<<nBelow<<endl;
